@@ -86,8 +86,29 @@ async function handleLeaveShelterDo(bot, callbackQuery) {
   const userId = callbackQuery.from.id;
 
   try {
+    // First, find the user to get their current shelter ID and name
+    const user = await User.findByPk(userId);
+    if (!user || !user.shelterId) {
+      // User is not in a shelter, nothing to do.
+      // This case should ideally not be reached if the menus are correct.
+      console.error(`User ${userId} tried to execute leave action but was not in a shelter.`);
+      return;
+    }
+
+    const oldShelterId = user.shelterId;
+    const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+
+    // Now, update the user to remove them from the shelter
     await User.update({ shelterId: null }, { where: { id: userId } });
 
+    // Send notification to the old shelter
+    try {
+      await bot.sendMessage(oldShelterId, `🏕️ یک بازمانده پناهگاه را ترک کرد: **${userName}**`, { parse_mode: 'Markdown' });
+    } catch (e) {
+      console.error(`Failed to send leave notification to shelter ${oldShelterId}:`, e.message);
+    }
+
+    // Update the message in the private chat
     const text = 'شما با موفقیت از پناهگاه خود خارج شدید.';
     await bot.editMessageText(text, {
       chat_id: chatId,
@@ -100,6 +121,18 @@ async function handleLeaveShelterDo(bot, callbackQuery) {
     });
   } catch (error) {
     console.error('Error in handleLeaveShelterDo:', error);
+    // Inform user about the error
+    try {
+        await bot.editMessageText('خطایی در فرآیند خروج از پناهگاه رخ داد.', {
+            chat_id: chatId,
+            message_id: messageId,
+            reply_markup: {
+                inline_keyboard: [[{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]]
+            }
+        });
+    } catch (e) {
+        console.error('Failed to send error message on leave failure:', e);
+    }
   }
 }
 
