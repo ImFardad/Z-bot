@@ -7,7 +7,7 @@ const menus = {
       const keyboard = [
         [{ text: '🧟 سناریو زامبی', callback_data: 'action:start_zombie' }],
         [{ text: '🏕️ پناهگاه', callback_data: 'action:manage_shelter' }],
-        [{ text: '🏆 امتیاز من', callback_data: 'action:show_score' }],
+        [{ text: '🏆 احتمال بقا', callback_data: 'action:show_score' }],
       ];
 
       // Add admin panel button if the user is an admin

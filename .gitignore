@@ -6,6 +6,8 @@
 
 # Local Database
 bot-database.sqlite
+bot-database.sqlite-shm
+bot-database.sqlite-wal
 *.sqlite
 
 # Log files

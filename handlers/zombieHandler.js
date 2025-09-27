@@ -14,7 +14,7 @@ async function startZombieScenario(bot, chatId, userId) {
     return;
   }
 
-  if (!geminiService.isEnabled) {
+  if (!geminiService.isEnabled()) {
     bot.sendMessage(chatId, 'متاسفانه این بخش در حال حاضر غیرفعال است. لطفاً بعداً تلاش کنید.');
     return;
   }
@@ -27,20 +27,11 @@ async function startZombieScenario(bot, chatId, userId) {
     // Store the scenario in the user's state
     userZombieState[chatId] = { scenario: scenario, type: 'zombie' };
     
-    // Save the scenario to the history
-    try {
-      await UserQuestionHistory.create({
-        question: scenario, // Using 'question' field to store the scenario
-        userId: userId,
-        type: 'zombie',
-      });
-    } catch (error) {
-      console.error('Failed to save scenario to history:', error);
-    }
+    // The scenario is now saved inside the geminiService, so no need to save it here.
 
     bot.sendMessage(chatId, `🧟 **سناریوی جدید:**\n\n\n${scenario}\n\n\nایده و راه حل خود را برای نجات پیدا کردن از این موقعیت بنویسید و ارسال کنید.`, { parse_mode: 'Markdown' });
   } else {
-    bot.sendMessage(chatId, 'خطایی در تولید سناریو رخ داد. لطفاً دوباره تلاش کنید.');
+    bot.sendMessage(chatId, 'متاسفانه سهمیه تولید سناریو برای امروز به پایان رسیده است یا خطایی در ارتباط با سرویس رخ داده. لطفاً بعداً تلاش کنید.');
   }
 }
 
@@ -107,7 +98,7 @@ async function handleZombieSolution(bot, msg) {
         resultText = 'خطایی در پردازش پاسخ شما رخ داد.';
       }
     } else {
-      resultText = 'خطایی در ارزیابی پاسخ شما توسط هوش مصنوعی رخ داد. لطفاً دوباره تلاش کنید.';
+      resultText = 'متاسفانه سهمیه ارزیابی پاسخ‌ها برای امروز به پایان رسیده است یا خطایی در ارتباط با سرویس رخ داده. لطفاً بعداً تلاش کنید.';
     }
 
     // Send the result in a new message with a back button

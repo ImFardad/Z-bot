@@ -98,7 +98,7 @@ async function handleMenuCallback(bot, callbackQuery) {
         const userRecord = await User.findByPk(user.id);
         const survivalPercentage = userRecord ? userRecord.survivalPercentage : 0;
         bot.answerCallbackQuery(callbackQuery.id, {
-          text: `🧟 درصد بقا: ${survivalPercentage.toFixed(2)}%`,
+          text: `🧟 احتمال بقا: ${survivalPercentage.toFixed(2)}%`,
           show_alert: true,
         });
       } catch (error) {
