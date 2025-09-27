@@ -1,37 +1,65 @@
 const geminiService = require('../services/geminiService');
-const UserQuestionHistory = require('../db/UserQuestionHistory');
 const User = require('../db/User');
+const { activeMenuMessages } = require('./startHandler');
 
 // Simple in-memory state for the zombie scenario
 const userZombieState = {};
 
-async function startZombieScenario(bot, chatId, userId) {
-  // Check if the user already has an active scenario
-  if (userZombieState[chatId] && userZombieState[chatId].scenario) {
-    const existingScenario = userZombieState[chatId].scenario;
-    bot.sendMessage(chatId, 'شما یک سناریوی فعال و پاسخ‌داده‌نشده دارید. لطفاً ابتدا به آن پاسخ دهید.');
-    bot.sendMessage(chatId, `🧟 **یادآوری سناریو:**\n\n\n${existingScenario}\n\n\nایده و راه حل خود را برای نجات پیدا کردن از این موقعیت بنویسید و ارسال کنید.`, { parse_mode: 'Markdown' });
-    return;
-  }
+async function startZombieScenario(bot, callbackQuery) {
+  const chatId = callbackQuery.message.chat.id;
+  const userId = callbackQuery.from.id;
+  const messageId = callbackQuery.message.message_id;
 
-  if (!geminiService.isEnabled()) {
-    bot.sendMessage(chatId, 'متاسفانه این بخش در حال حاضر غیرفعال است. لطفاً بعداً تلاش کنید.');
-    return;
-  }
+  try {
+    // Check if the user already has an active scenario
+    if (userZombieState[chatId] && userZombieState[chatId].scenario) {
+      const existingScenario = userZombieState[chatId].scenario;
+      await bot.sendMessage(chatId, 'شما یک سناریوی فعال و پاسخ‌داده‌نشده دارید. لطفاً ابتدا به آن پاسخ دهید.');
+      await bot.sendMessage(chatId, `🧟 **یادآوری سناریو:**\n\n\n${existingScenario}\n\n\nایده و راه حل خود را برای نجات پیدا کردن از این موقعیت بنویسید و ارسال کنید.`, { parse_mode: 'Markdown' });
+      return;
+    }
 
-  bot.sendMessage(chatId, '⏳ در حال ساخت یک سناریوی آخرالزمانی...');
+    if (!geminiService.isEnabled()) {
+      await bot.editMessageText('متاسفانه سرویس هوش مصنوعی در حال حاضر غیرفعال است. لطفاً بعداً تلاش کنید.', { 
+        chat_id: chatId, 
+        message_id: messageId,
+        reply_markup: { inline_keyboard: [[{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]] } 
+      });
+      return;
+    }
 
-  const scenario = await geminiService.generateZombieScenario(userId);
+    await bot.editMessageText('⏳ در حال ساخت یک سناریوی آخرالزمانی...', {
+      chat_id: chatId,
+      message_id: messageId,
+    });
 
-  if (scenario) {
-    // Store the scenario in the user's state
-    userZombieState[chatId] = { scenario: scenario, type: 'zombie' };
-    
-    // The scenario is now saved inside the geminiService, so no need to save it here.
+    const scenario = await geminiService.generateZombieScenario(userId);
 
-    bot.sendMessage(chatId, `🧟 **سناریوی جدید:**\n\n\n${scenario}\n\n\nایده و راه حل خود را برای نجات پیدا کردن از این موقعیت بنویسید و ارسال کنید.`, { parse_mode: 'Markdown' });
-  } else {
-    bot.sendMessage(chatId, 'متاسفانه سهمیه تولید سناریو برای امروز به پایان رسیده است یا خطایی در ارتباط با سرویس رخ داده. لطفاً بعداً تلاش کنید.');
+    if (scenario) {
+      userZombieState[chatId] = { scenario: scenario, type: 'zombie' };
+      await bot.editMessageText(`🧟 **سناریوی جدید:**\n\n\n${scenario}\n\n\nایده و راه حل خود را برای نجات پیدا کردن از این موقعیت بنویسید و ارسال کنید.`, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'Markdown',
+      });
+    } else {
+      await bot.editMessageText('متاسفانه سهمیه تولید سناریو برای امروز به پایان رسیده است یا خطایی در ارتباط با سرویس رخ داده. لطفاً بعداً تلاش کنید.', {
+        chat_id: chatId,
+        message_id: messageId,
+        reply_markup: { inline_keyboard: [[{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]] }
+      });
+    }
+  } catch (error) {
+    console.error("Error in startZombieScenario:", error);
+    try {
+      await bot.editMessageText('خطایی در شروع سناریو رخ داد. لطفاً دوباره تلاش کنید.', {
+        chat_id: chatId,
+        message_id: messageId,
+        reply_markup: { inline_keyboard: [[{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]] }
+      });
+    } catch (e) {
+      console.error("Failed to send error message in startZombieScenario:", e);
+    }
   }
 }
 
@@ -39,15 +67,17 @@ async function handleZombieSolution(bot, msg) {
   const chatId = msg.chat.id;
   const state = userZombieState[chatId];
 
-  // Check if the user was expecting to answer a scenario
-  if (state && state.scenario) {
+  if (!state || !state.scenario) {
+    return false; // Not a zombie solution
+  }
+
+  try {
     const userAnswer = msg.text;
     const scenario = state.scenario;
 
-    // Clear state immediately
     delete userZombieState[chatId];
 
-    bot.sendMessage(chatId, '🧠 در حال تحلیل و امتیازدهی به راه حل شما...');
+    await bot.sendMessage(chatId, '🧠 در حال تحلیل و امتیازدهی به راه حل شما...');
 
     const evaluation = await geminiService.evaluateZombieSolution(scenario, userAnswer);
 
@@ -72,22 +102,13 @@ async function handleZombieSolution(bot, msg) {
           await user.save();
 
           resultText = `**تحلیل راه حل شما:**\n\n`;
-          resultText += `👍 کاربردی بودن: ${evaluation.practicality}%
-`;
-          resultText += `💡 خلاقیت: ${evaluation.creativity}%
-`;
-          resultText += `⚙️ کارآمدی: ${evaluation.efficiency}%
-`;
-          resultText += `⏱️ سرعت عمل: ${evaluation.speed}%
-`;
-          resultText += `⚠️ مدیریت ریسک: ${evaluation.risk_assessment}%
-
-`;
-          resultText += `📝 **بازخورد:** ${evaluation.feedback}
-
-`;
-          resultText += `⭐ **امتیاز این مرحله:** ${scenarioAverage.toFixed(2)}%
-`;
+          resultText += `👍 کاربردی بودن: ${evaluation.practicality}%\n`;
+          resultText += `💡 خلاقیت: ${evaluation.creativity}%\n`;
+          resultText += `⚙️ کارآمدی: ${evaluation.efficiency}%\n`;
+          resultText += `⏱️ سرعت عمل: ${evaluation.speed}%\n`;
+          resultText += `⚠️ مدیریت ریسک: ${evaluation.risk_assessment}%\n\n`;
+          resultText += `📝 **بازخورد:** ${evaluation.feedback}\n\n`;
+          resultText += `⭐ **امتیاز این مرحله:** ${scenarioAverage.toFixed(2)}%\n`;
           resultText += `🧟 **درصد کلی بقا:** ${newSurvivalPercentage.toFixed(2)}%`;
 
         } else {
@@ -101,8 +122,7 @@ async function handleZombieSolution(bot, msg) {
       resultText = 'متاسفانه سهمیه ارزیابی پاسخ‌ها برای امروز به پایان رسیده است یا خطایی در ارتباط با سرویس رخ داده. لطفاً بعداً تلاش کنید.';
     }
 
-    // Send the result in a new message with a back button
-    await bot.sendMessage(chatId, resultText, {
+    const sentMessage = await bot.sendMessage(chatId, resultText, {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
@@ -110,11 +130,19 @@ async function handleZombieSolution(bot, msg) {
         ]
       }
     });
+    // Update the active menu to be this new message
+    activeMenuMessages[chatId] = sentMessage.message_id;
     
     return true; // Message was handled
+  } catch (error) {
+    console.error("Error in handleZombieSolution:", error);
+    try {
+      await bot.sendMessage(chatId, 'خطایی پیش‌بینی نشده در پردازش پاسخ شما رخ داد.');
+    } catch (e) {
+      console.error("Failed to send error message in handleZombieSolution:", e);
+    }
+    return true; // Still handled, just with an error
   }
-
-  return false; // Message was not a zombie solution
 }
 
 module.exports = { startZombieScenario, handleZombieSolution, userZombieState };

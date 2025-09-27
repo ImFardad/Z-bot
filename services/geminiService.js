@@ -10,6 +10,9 @@ let allKeysExhausted = false;
 let genAI;
 let model;
 
+// Define the model name from environment variables or use a default
+const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-1.5-flash';
+
 // Initialize API keys and the first model instance
 const keysString = process.env.GEMINI_API_KEYS;
 if (keysString) {
@@ -20,7 +23,7 @@ if (keysString) {
       genAI = new GoogleGenerativeAI(apiKeys[currentApiKeyIndex]);
       const generationConfig = { temperature: 0.9 };
       // The user mentioned they fixed the issue with this model name
-      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig });
+      model = genAI.getGenerativeModel({ model: modelName, generationConfig });
     } catch (error) {
       console.error(`Could not initialize Gemini AI with key at index ${currentApiKeyIndex}.`, error);
       model = null;
@@ -66,7 +69,7 @@ async function generateWithRotation(prompt) {
       try {
         genAI = new GoogleGenerativeAI(apiKeys[currentApiKeyIndex]);
         const generationConfig = { temperature: 0.9 };
-        model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', generationConfig });
+        model = genAI.getGenerativeModel({ model: modelName, generationConfig });
         
         // Retry the request with the new key
         return generateWithRotation(prompt);

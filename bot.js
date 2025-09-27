@@ -50,23 +50,69 @@ async function startBot() {
   console.log('Bot commands set successfully.');
 
   // Handler for the /start command
-  bot.onText(/\/start/, (msg) => handleStart(bot, msg));
+  bot.onText(/\/start/, async (msg) => {
+    try {
+      await handleStart(bot, msg);
+    } catch (error) {
+      console.error("Unhandled error in handleStart:", error);
+    }
+  });
 
   // Handler for the /shelter_members command
-  bot.onText(/\/shelter_members/, (msg) => handleListShelterMembers(bot, msg));
+  bot.onText(/\/shelter_members/, async (msg) => {
+    try {
+      await handleListShelterMembers(bot, msg);
+    } catch (error) {
+      console.error("Unhandled error in handleListShelterMembers:", error);
+    }
+  });
 
   // Listener for general messages to handle zombie solutions
   bot.on('message', async (msg) => {
     if (msg.text && msg.text.startsWith('/')) {
       return;
     }
-    // All non-command messages are assumed to be zombie solutions
-    await handleZombieSolution(bot, msg);
+    try {
+      // All non-command messages are assumed to be zombie solutions
+      await handleZombieSolution(bot, msg);
+    } catch (error) {
+      console.error("Unhandled error in message handler:", error);
+    }
   });
 
   // General handler for all callback queries
   bot.on('callback_query', (callbackQuery) => {
     handleMenuCallback(bot, callbackQuery);
+  });
+
+  // Handler for when the bot is removed from a group
+  bot.on('left_chat_member', async (msg) => {
+    const leftMember = msg.left_chat_member;
+    if (leftMember && leftMember.id === botInfo.id) {
+      const chatId = msg.chat.id;
+      console.log(`Bot was removed from group ${chatId}. Cleaning up shelter data.`);
+
+      try {
+        // Set shelterId to null for all users in this shelter
+        const [updatedUsersCount] = await User.update(
+          { shelterId: null },
+          { where: { shelterId: chatId } }
+        );
+        if (updatedUsersCount > 0) {
+          console.log(`Removed ${updatedUsersCount} users from shelter ${chatId}.`);
+        }
+
+        // Remove the shelter from all users' "possible shelters" list
+        const deletedPossibleCount = await UserPossibleShelter.destroy({
+          where: { shelterId: chatId },
+        });
+        if (deletedPossibleCount > 0) {
+          console.log(`Removed shelter ${chatId} from ${deletedPossibleCount} users' possible lists.`);
+        }
+      } catch (error) {
+        console.error(`Failed to clean up data for shelter ${chatId}:`, error);
+      }
+    }
   });
 
   // Polling error listener

@@ -3,6 +3,9 @@ const User = require('../db/User');
 const Shelter = require('../db/Shelter');
 const UserPossibleShelter = require('../db/UserPossibleShelter');
 
+// In-memory store for active menu messages { [chatId]: messageId }
+const activeMenuMessages = {};
+
 async function handleStart(bot, msg) {
   const chatId = msg.chat.id;
   const user = msg.from;
@@ -20,37 +23,42 @@ async function handleStart(bot, msg) {
 
     // --- Group Logic ---
     if (chatType === 'group' || chatType === 'supergroup') {
-      // Register the group as a Shelter
-      await Shelter.upsert({
-        id: chatId,
-        name: msg.chat.title,
-      });
+      await Shelter.upsert({ id: chatId, name: msg.chat.title });
       console.log(`Shelter ${chatId} (${msg.chat.title}) is present in the database.`);
-
-      // Mark this shelter as a "possible shelter" for the user
-      await UserPossibleShelter.findOrCreate({
-        where: {
-          userId: user.id,
-          shelterId: chatId,
-        },
-      });
+      await UserPossibleShelter.findOrCreate({ where: { userId: user.id, shelterId: chatId } });
       console.log(`Shelter ${chatId} marked as possible for user ${user.id}.`);
-
-      // Send a confirmation message to the group
-      bot.sendMessage(chatId, `🏕️ این گروه اکنون به عنوان یک پناهگاه ثبت شده است!\n\nاعضای گروه می‌توانند در چت خصوصی با من، از طریق منوی «پناهگاه»، به اینجا ملحق شوند.`);
-      return; // Stop further execution for group messages
+      await bot.sendMessage(chatId, `🏕️ این گروه اکنون به عنوان یک پناهگاه ثبت شده است!\n\nاعضای گروه می‌توانند در چت خصوصی با من، از طریق منوی «پناهگاه»، به اینجا ملحق شوند.`);
+      return;
     }
 
-    // --- Private Chat Logic ---
+    // --- Private Chat Logic (with Active Menu Tracking) ---
+    
+    // 1. If an old menu message exists, delete it.
+    if (activeMenuMessages[chatId]) {
+      try {
+        await bot.deleteMessage(chatId, activeMenuMessages[chatId]);
+      } catch (e) {
+        // Ignore if the message was already deleted by the user
+        console.log(`Could not delete old menu message ${activeMenuMessages[chatId]}:`, e.message);
+      }
+    }
+
+    // 2. Send the new menu message.
     const mainMenu = menus.main;
     const welcomeText = mainMenu.text(user.first_name);
+    const sentMessage = await bot.sendMessage(chatId, welcomeText, mainMenu.options(user.id));
 
-    bot.sendMessage(chatId, welcomeText, mainMenu.options(user.id));
+    // 3. Store the new message's ID as the active one.
+    activeMenuMessages[chatId] = sentMessage.message_id;
 
   } catch (error) {
     console.error('Error in handleStart:', error);
-    bot.sendMessage(chatId, 'خطایی در پردازش درخواست شما رخ داد.');
+    try {
+      await bot.sendMessage(chatId, 'خطایی در پردازش درخواست شما رخ داد.');
+    } catch (e) {
+      console.error('Failed to send error message in handleStart:', e);
+    }
   }
 }
 
-module.exports = { handleStart };
+module.exports = { handleStart, activeMenuMessages };
