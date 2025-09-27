@@ -12,21 +12,27 @@ async function handleStart(bot, msg) {
   const chatType = msg.chat.type;
 
   try {
-    // Always ensure the user exists in the database first
+    // --- Group Logic ---
+    if (chatType === 'group' || chatType === 'supergroup') {
+      const userRecord = await User.findByPk(user.id);
+      if (!userRecord) {
+        try {
+          await bot.sendMessage(chatId, 'برای استفاده از امکانات ربات در گروه، ابتدا باید ربات را در چت خصوصی استارت کنید.', { reply_to_message_id: msg.message_id });
+        } catch(e) { console.error(e); }
+      } else {
+        await bot.sendMessage(chatId, 'برای استفاده از ربات در چت خصوصی به من پیام دهید. برای ساخت پناهگاه در گروه از دستور /shelter استفاده کنید.');
+      }
+      return;
+    }
+
+    // --- Private Chat Logic (with Active Menu Tracking) ---
+    // User is starting the bot privately, so we create or update their record.
     await User.upsert({
       id: user.id,
       firstName: user.first_name,
       lastName: user.last_name || null,
       username: user.username || null,
     });
-
-    // --- Group Logic ---
-    if (chatType === 'group' || chatType === 'supergroup') {
-      await bot.sendMessage(chatId, 'برای استفاده از ربات در چت خصوصی به من پیام دهید. برای ساخت پناهگاه در گروه از دستور /create_shelter استفاده کنید.');
-      return;
-    }
-
-    // --- Private Chat Logic (with Active Menu Tracking) ---
     
     // 1. If an old menu message exists, delete it.
     if (activeMenuMessages[chatId]) {

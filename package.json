@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
     "dev": "set DOTENV_CONFIG_SILENT=true&& nodemon --quiet index.js",
     "lint": "eslint .",
     "prepare": "husky"

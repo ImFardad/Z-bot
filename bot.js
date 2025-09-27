@@ -16,14 +16,16 @@ async function startBot() {
   // Define model associations
   const User = require('./db/User');
   const Shelter = require('./db/Shelter');
-  const UserPossibleShelter = require('./db/UserPossibleShelter');
   require('./db/UserQuestionHistory');
 
   Shelter.hasMany(User, { foreignKey: 'shelterId' });
   User.belongsTo(Shelter, { foreignKey: 'shelterId' });
 
-  User.belongsToMany(Shelter, { through: UserPossibleShelter, foreignKey: 'userId', as: 'PossibleShelters' });
-  Shelter.belongsToMany(User, { through: UserPossibleShelter, foreignKey: 'shelterId' });
+  // Helper function to check if a user has started the bot
+  async function isUserRegistered(userId) {
+    const user = await User.findByPk(userId);
+    return user !== null;
+  }
 
   try {
     await sequelize.sync({ alter: true });
@@ -46,7 +48,17 @@ async function startBot() {
   console.log('Bot commands set successfully.');
 
   bot.onText(/\/start/, (msg) => handleStart(bot, msg));
-  bot.onText(/\/shelter/, (msg) => handleCreateShelterCommand(bot, msg));
+  
+  bot.onText(/\/shelter/, async (msg) => {
+    const userExists = await isUserRegistered(msg.from.id);
+    if (!userExists) {
+      try {
+        await bot.sendMessage(msg.chat.id, 'برای استفاده از امکانات ربات در گروه، ابتدا باید ربات را در چت خصوصی استارت کنید.', { reply_to_message_id: msg.message_id });
+      } catch(e) { console.error(e); }
+      return;
+    }
+    handleCreateShelterCommand(bot, msg);
+  });
 
   bot.on('message', async (msg) => {
     // Ignore commands, they are handled by onText
@@ -65,6 +77,14 @@ async function startBot() {
   });
 
   bot.on('callback_query', async (callbackQuery) => {
+    const userExists = await isUserRegistered(callbackQuery.from.id);
+    if (!userExists) {
+      try {
+        await bot.answerCallbackQuery(callbackQuery.id, { text: 'برای استفاده از دکمه‌ها، ابتدا باید ربات را در چت خصوصی استارت کنید.', show_alert: true });
+      } catch(e) { console.error(e); }
+      return;
+    }
+
     // 1. Handle shelter join callbacks
     const joinCallbackHandled = await handleShelterJoinCallback(bot, callbackQuery);
     if (joinCallbackHandled) return;
@@ -89,14 +109,6 @@ async function startBot() {
         );
         if (updatedUsersCount > 0) {
           console.log(`Removed ${updatedUsersCount} users from shelter ${chatId}.`);
-        }
-
-        // Remove the shelter from all users' "possible shelters" list
-        const deletedPossibleCount = await UserPossibleShelter.destroy({
-          where: { shelterId: chatId },
-        });
-        if (deletedPossibleCount > 0) {
-          console.log(`Removed shelter ${chatId} from ${deletedPossibleCount} users' possible lists.`);
         }
 
         // Finally, delete the shelter itself

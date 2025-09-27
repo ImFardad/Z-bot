@@ -230,7 +230,6 @@ async function finalizeShelterCreation(bot, chatId) {
   try {
     await Shelter.upsert(shelterData);
     await User.update({ shelterId: chatId }, { where: { id: state.initiator } });
-    await UserPossibleShelter.findOrCreate({ where: { userId: state.initiator, shelterId: chatId } });
 
     const initiatorUser = await User.findByPk(state.initiator);
     const initiatorName = [initiatorUser.firstName, initiatorUser.lastName].filter(Boolean).join(' ');

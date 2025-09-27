@@ -13,13 +13,8 @@ async function handleManageShelter(bot, callbackQuery) {
   try {
     const user = await User.findByPk(userId, { include: Shelter });
 
-    if (!user) {
-      console.error(`User not found in handleManageShelter: ${userId}`);
-      return;
-    }
-
-    if (user.shelterId && user.Shelter) {
-      const text = `🏕️ **پناهگاه شما**\n\nشما در حال حاضر عضو پناهگاه «**${user.Shelter.name}**» هستید.`;
+    if (user && user.Shelter) {
+      const text = `🏕️ **پناهگاه شما**\n\nشما در حال حاضر عضو پناهگاه «**${user.Shelter.name}**» هستید.\n\n- **استان:** ${user.Shelter.province}\n- **شهر:** ${user.Shelter.city}`;
       await bot.editMessageText(text, {
         chat_id: chatId,
         message_id: messageId,
@@ -32,55 +27,25 @@ async function handleManageShelter(bot, callbackQuery) {
         }
       });
     } else {
-      const userWithPossibleShelters = await User.findByPk(userId, {
-        include: { model: Shelter, as: 'PossibleShelters' },
+      const safeUsername = bot.botUsername.replace(/_/g, '\\_');
+      const text = `🏕️ **شما پناهگاهی ندارید!**\n\nبرای پیوستن به یک پناهگاه یا ساختن یکی جدید، مراحل زیر را دنبال کنید:\n\n1.  ربات (@${safeUsername}) را به گروه مورد نظر خود اضافه کنید.\n2.  در گروه، دستور /shelter را ارسال کنید.\n\n- اگر پناهگاهی در آن گروه ثبت نشده باشد، فرآیند ساخت پناهگاه برای شما (در صورتی که ادمین باشید) آغاز می‌شود.\n- اگر پناهگاه از قبل وجود داشته باشد، اطلاعات آن به همراه دکمه «پیوستن به پناهگاه» نمایش داده می‌شود.`;
+      await bot.editMessageText(text, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]
+          ]
+        }
       });
-      const possibleShelters = userWithPossibleShelters.PossibleShelters;
-
-      if (possibleShelters && possibleShelters.length > 0) {
-        const text = 'شما هنوز به هیچ پناهگاهی ملحق نشده‌اید.\n\nلیست پناهگاه‌هایی که می‌توانید به آن‌ها ملحق شوید (گروه‌هایی که در آن‌ها ربات را استارت کرده‌اید):';
-        const keyboard = possibleShelters.map(shelter => ([{ text: shelter.name, callback_data: `shelter_join:${shelter.id}` }]));
-        keyboard.push(
-          [{ text: '🔄 رفرش', callback_data: 'action:manage_shelter' }],
-          [{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]
-        );
-        await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: keyboard } });
-      } else {
-        const safeUsername = bot.botUsername.replace(/_/g, '\\_');
-        const text = `🏕️ **شما پناهگاهی ندارید!**\n\nیک بازمانده تنها هستید. برای پیوستن به یک پناهگاه یا ساختن یکی جدید، مراحل زیر را دنبال کنید:\n\n1.  یک گروه در تلگرام بسازید.\n2.  این ربات (@${safeUsername}) را به گروه خود اضافه کنید.\n3.  دستور /start را در گروه ارسال کنید.\n\nپس از این کار، آن گروه به عنوان یک پناهگاه ثبت شده و در این منو برای شما قابل انتخاب خواهد بود.`;
-        await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔄 رفرش', callback_data: 'action:manage_shelter' }, { text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]] } });
-      }
     }
   } catch (error) {
     if (error.response && error.response.body && error.response.body.description.includes('message is not modified')) {
-      // Silently ignore. The main handler already answered the query.
+      // Silently ignore.
     } else {
       console.error('Error in handleManageShelter:', error);
     }
-  }
-}
-
-async function handleJoinShelter(bot, callbackQuery, shelterId) {
-  const chatId = callbackQuery.message.chat.id;
-  const userId = callbackQuery.from.id;
-  const messageId = callbackQuery.message.message_id;
-
-  try {
-    const shelter = await Shelter.findByPk(shelterId);
-    if (!shelter) {
-      console.error(`Shelter not found for join: ${shelterId}`);
-      return;
-    }
-
-    await User.update({ shelterId: shelterId }, { where: { id: userId } });
-
-    const userName = callbackQuery.from.first_name;
-    await bot.sendMessage(shelterId, `🏕️ یک بازمانده جدید به شما پیوست!\n\n«**${userName}**» اکنون عضو این پناهگاه است.`, { parse_mode: 'Markdown' });
-
-    const text = `✅ تبریک!\n\nشما با موفقیت به پناهگاه «**${shelter.name}**» ملحق شدید.`;
-    await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]] } });
-  } catch (error) {
-    console.error('Error in handleJoinShelter:', error);
   }
 }
 
@@ -138,4 +103,4 @@ async function handleLeaveShelterDo(bot, callbackQuery) {
   }
 }
 
-module.exports = { handleManageShelter, handleJoinShelter, handleLeaveShelterConfirm, handleLeaveShelterDo };
+module.exports = { handleManageShelter, handleLeaveShelterConfirm, handleLeaveShelterDo };

@@ -11,6 +11,14 @@ const Shelter = sequelize.define('Shelter', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  province: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  city: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
 });
