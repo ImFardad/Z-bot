@@ -17,10 +17,12 @@ async function handleStart(bot, msg) {
       const userRecord = await User.findByPk(user.id);
       if (!userRecord) {
         try {
-          await bot.sendMessage(chatId, 'برای استفاده از امکانات ربات در گروه، ابتدا باید ربات را در چت خصوصی استارت کنید.', { reply_to_message_id: msg.message_id });
+          const text = '⚠️ **توجه**\n\nبرای استفاده از امکانات ربات در گروه، ابتدا باید ربات را در چت خصوصی استارت کنید.\n\nلطفا به پیوی ربات رفته و دستور /start را ارسال کنید.';
+          await bot.sendMessage(chatId, text, { reply_to_message_id: msg.message_id, parse_mode: 'Markdown' });
         } catch(e) { console.error(e); }
       } else {
-        await bot.sendMessage(chatId, 'برای استفاده از ربات در چت خصوصی به من پیام دهید. برای ساخت پناهگاه در گروه از دستور /shelter استفاده کنید.');
+        const text = '✅ **راهنما**\n\n- برای استفاده از امکانات ربات، به چت خصوصی آن مراجعه کنید.\n- برای ساخت پناهگاه در این گروه، از دستور /shelter استفاده نمایید.';
+        await bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
       }
       return;
     }
@@ -55,7 +57,8 @@ async function handleStart(bot, msg) {
   } catch (error) {
     console.error('Error in handleStart:', error);
     try {
-      await bot.sendMessage(chatId, 'خطایی در پردازش درخواست شما رخ داد.');
+      const errorText = '❌ **خطا**\n\nمتاسفانه در پردازش درخواست شما خطایی رخ داد. لطفاً دوباره تلاش کنید.';
+      await bot.sendMessage(chatId, errorText, { parse_mode: 'Markdown' });
     } catch (e) {
       console.error('Failed to send error message in handleStart:', e);
     }

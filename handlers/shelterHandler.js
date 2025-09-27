@@ -14,7 +14,7 @@ async function handleManageShelter(bot, callbackQuery) {
     const user = await User.findByPk(userId, { include: Shelter });
 
     if (user && user.Shelter) {
-      const text = `🏕️ **پناهگاه شما**\n\nشما در حال حاضر عضو پناهگاه «**${user.Shelter.name}**» هستید.\n\n- **استان:** ${user.Shelter.province}\n- **شهر:** ${user.Shelter.city}`;
+      const text = `**🏕️ پناهگاه فعلی شما**\n\nشما عضو پناهگاه «**${user.Shelter.name}**» هستید.\n\n**اطلاعات پناهگاه:**\n- استان: ${user.Shelter.province}\n- شهر: ${user.Shelter.city}`;
       await bot.editMessageText(text, {
         chat_id: chatId,
         message_id: messageId,
@@ -27,8 +27,7 @@ async function handleManageShelter(bot, callbackQuery) {
         }
       });
     } else {
-      const safeUsername = bot.botUsername.replace(/_/g, '\\_');
-      const text = `🏕️ **شما پناهگاهی ندارید!**\n\nبرای پیوستن به یک پناهگاه یا ساختن یکی جدید، مراحل زیر را دنبال کنید:\n\n1.  ربات (@${safeUsername}) را به گروه مورد نظر خود اضافه کنید.\n2.  در گروه، دستور /shelter را ارسال کنید.\n\n- اگر پناهگاهی در آن گروه ثبت نشده باشد، فرآیند ساخت پناهگاه برای شما (در صورتی که ادمین باشید) آغاز می‌شود.\n- اگر پناهگاه از قبل وجود داشته باشد، اطلاعات آن به همراه دکمه «پیوستن به پناهگاه» نمایش داده می‌شود.`;
+      const text = `**🏕️ شما در هیچ پناهگاهی عضو نیستید!**\n\nبرای ساختن یک پناهگاه جدید یا پیوستن به یکی از پناهگاه‌های موجود، لطفاً طبق راهنمای زیر عمل کنید:\n\n**۱. ساخت پناهگاه جدید**\n- ربات را به گروه مورد نظر خود اضافه کنید.\n- در گروه، دستور /shelter را تایپ کنید.\n- *توجه: فقط ادمین‌های گروه می‌توانند پناهگاه جدید بسازند.*\n\n**۲. پیوستن به پناهگاه موجود**\n- در گروهی که پناهگاه در آن قرار دارد، دستور /shelter را تایپ کنید.\n- از طریق دکمه «پیوستن به پناهگاه» که نمایش داده می‌شود، عضو شوید.`;
       await bot.editMessageText(text, {
         chat_id: chatId,
         message_id: messageId,
@@ -61,7 +60,7 @@ async function handleLeaveShelterConfirm(bot, callbackQuery) {
       return;
     }
 
-    const text = `⚠️ **آیا مطمئن هستید؟**\n\nآیا می‌خواهید پناهگاه «**${user.Shelter.name}**» را ترک کنید؟`;
+    const text = `**⚠️ تایید خروج**\n\nآیا برای ترک پناهگاه «**${user.Shelter.name}**» مطمئن هستید؟`;
     await bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
@@ -103,13 +102,14 @@ async function handleLeaveShelterDo(bot, callbackQuery) {
 
     // Send notification to the old shelter
     try {
-      await bot.sendMessage(oldShelterId, `🏕️ یک بازمانده پناهگاه را ترک کرد: **${userName}**`, { parse_mode: 'Markdown' });
+      const notificationText = `➖ **یک بازمانده پناهگاه را ترک کرد!**\n\nکاربر «${userName}» دیگر عضو این پناهگاه نیست.`;
+      await bot.sendMessage(oldShelterId, notificationText, { parse_mode: 'Markdown' });
     } catch (e) {
       console.error(`Failed to send leave notification to shelter ${oldShelterId}:`, e.message);
     }
 
     // Update the message in the private chat
-    const text = 'شما با موفقیت از پناهگاه خود خارج شدید.';
+    const text = '✅ **خروج موفق**\n\nشما با موفقیت از پناهگاه خود خارج شدید.';
     await bot.editMessageText(text, {
       chat_id: chatId,
       message_id: messageId,
@@ -123,9 +123,11 @@ async function handleLeaveShelterDo(bot, callbackQuery) {
     console.error('Error in handleLeaveShelterDo:', error);
     // Inform user about the error
     try {
-        await bot.editMessageText('خطایی در فرآیند خروج از پناهگاه رخ داد.', {
+        const errorText = '❌ **خطا**\n\nمشکلی در فرآیند خروج از پناهگاه رخ داد. لطفاً دوباره تلاش کنید.';
+        await bot.editMessageText(errorText, {
             chat_id: chatId,
             message_id: messageId,
+            parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [[{ text: '➡️ بازگشت به منوی اصلی', callback_data: 'navigate:main' }]]
             }
