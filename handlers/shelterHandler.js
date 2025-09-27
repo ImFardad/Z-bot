@@ -138,44 +138,4 @@ async function handleLeaveShelterDo(bot, callbackQuery) {
   }
 }
 
-async function handleListShelterMembers(bot, msg) {
-  const chatId = msg.chat.id;
-  const chatType = msg.chat.type;
-
-  if (chatType !== 'group' && chatType !== 'supergroup') {
-    try { await bot.sendMessage(chatId, 'این دستور فقط در گروه‌ها قابل استفاده است.'); } catch(e) { console.error(e); }
-    return;
-  }
-
-  try {
-    const shelter = await Shelter.findByPk(chatId);
-    if (!shelter) {
-      await bot.sendMessage(chatId, 'این گروه به عنوان پناهگاه ثبت نشده است. لطفاً ابتدا از دستور /start استفاده کنید.');
-      return;
-    }
-
-    const members = await User.findAll({
-      where: { shelterId: chatId },
-      attributes: ['firstName', 'lastName'],
-    });
-
-    if (members.length === 0) {
-      await bot.sendMessage(chatId, 'هیچ عضوی در این پناهگاه یافت نشد.');
-      return;
-    }
-
-    let memberList = `👥 **اعضای پناهگاه «${shelter.name}»:**\n\n`;
-    members.forEach((member, index) => {
-      const fullName = [member.firstName, member.lastName].filter(Boolean).join(' ');
-      memberList += `${index + 1}. ${fullName}\n`;
-    });
-
-    await bot.sendMessage(chatId, memberList, { parse_mode: 'Markdown' });
-
-  } catch (error) {
-    console.error('Error in handleListShelterMembers:', error);
-    try { await bot.sendMessage(chatId, 'خطایی در دریافت لیست اعضا رخ داد.'); } catch(e) { console.error(e); }
-  }
-}
-
-module.exports = { handleManageShelter, handleJoinShelter, handleLeaveShelterConfirm, handleLeaveShelterDo, handleListShelterMembers };
+module.exports = { handleManageShelter, handleJoinShelter, handleLeaveShelterConfirm, handleLeaveShelterDo };

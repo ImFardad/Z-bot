@@ -19,15 +19,10 @@ async function handleStart(bot, msg) {
       lastName: user.last_name || null,
       username: user.username || null,
     });
-    console.log(`User ${user.id} (${user.first_name}) is present in the database.`);
 
     // --- Group Logic ---
     if (chatType === 'group' || chatType === 'supergroup') {
-      await Shelter.upsert({ id: chatId, name: msg.chat.title });
-      console.log(`Shelter ${chatId} (${msg.chat.title}) is present in the database.`);
-      await UserPossibleShelter.findOrCreate({ where: { userId: user.id, shelterId: chatId } });
-      console.log(`Shelter ${chatId} marked as possible for user ${user.id}.`);
-      await bot.sendMessage(chatId, `🏕️ این گروه اکنون به عنوان یک پناهگاه ثبت شده است!\n\nاعضای گروه می‌توانند در چت خصوصی با من، از طریق منوی «پناهگاه»، به اینجا ملحق شوند.`);
+      await bot.sendMessage(chatId, 'برای استفاده از ربات در چت خصوصی به من پیام دهید. برای ساخت پناهگاه در گروه از دستور /create_shelter استفاده کنید.');
       return;
     }
 

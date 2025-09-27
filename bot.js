@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const { token } = require('./config');
 const { handleStart } = require('./handlers/startHandler');
 const { handleMenuCallback } = require('./handlers/menuHandler');
+const { handleCreateShelterCommand, handleCreationReply, handleCreationCallback, handleShelterJoinCallback } = require('./handlers/shelterCreationHandler');
 const { handleZombieSolution } = require('./handlers/zombieHandler');
 const { handleListShelterMembers } = require('./handlers/shelterHandler');
 const sequelize = require('./db/database');
@@ -16,17 +17,14 @@ async function startBot() {
   const User = require('./db/User');
   const Shelter = require('./db/Shelter');
   const UserPossibleShelter = require('./db/UserPossibleShelter');
-  require('./db/UserQuestionHistory'); // This model has no associations, just needs to be registered
+  require('./db/UserQuestionHistory');
 
-  // A user can belong to one Shelter
   Shelter.hasMany(User, { foreignKey: 'shelterId' });
   User.belongsTo(Shelter, { foreignKey: 'shelterId' });
 
-  // A user can have many possible shelters, and a shelter can have many possible users
   User.belongsToMany(Shelter, { through: UserPossibleShelter, foreignKey: 'userId', as: 'PossibleShelters' });
   Shelter.belongsToMany(User, { through: UserPossibleShelter, foreignKey: 'shelterId' });
 
-  // Initialize and synchronize the database
   try {
     await sequelize.sync({ alter: true });
     console.log('Database synchronized successfully.');
@@ -37,61 +35,52 @@ async function startBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
-  // Get bot info and store username
   const botInfo = await bot.getMe();
   bot.botUsername = botInfo.username;
   console.log(`Bot username: @${bot.botUsername}`);
 
-  // Set bot commands
   await bot.setMyCommands([
-    { command: 'start', description: 'شروع کار با ربات و ثبت پناهگاه' },
-    { command: 'shelter_members', description: 'نمایش لیست اعضای پناهگاه (فقط در گروه)' },
+    { command: 'start', description: 'شروع کار با ربات (فقط در چت خصوصی)' },
+    { command: 'shelter', description: 'ایجاد یا نمایش اطلاعات پناهگاه (فقط در گروه)' },
   ]);
   console.log('Bot commands set successfully.');
 
-  // Handler for the /start command
-  bot.onText(/\/start/, async (msg) => {
-    try {
-      await handleStart(bot, msg);
-    } catch (error) {
-      console.error("Unhandled error in handleStart:", error);
-    }
-  });
+  bot.onText(/\/start/, (msg) => handleStart(bot, msg));
+  bot.onText(/\/shelter/, (msg) => handleCreateShelterCommand(bot, msg));
 
-  // Handler for the /shelter_members command
-  bot.onText(/\/shelter_members/, async (msg) => {
-    try {
-      await handleListShelterMembers(bot, msg);
-    } catch (error) {
-      console.error("Unhandled error in handleListShelterMembers:", error);
-    }
-  });
-
-  // Listener for general messages to handle zombie solutions
   bot.on('message', async (msg) => {
-    if (msg.text && msg.text.startsWith('/')) {
-      return;
-    }
+    // Ignore commands, they are handled by onText
+    if (msg.text && msg.text.startsWith('/')) return;
+
+    // 1. Handle shelter creation replies
+    const creationHandled = await handleCreationReply(bot, msg);
+    if (creationHandled) return;
+
+    // 2. Handle zombie solutions (if not a creation reply)
     try {
-      // All non-command messages are assumed to be zombie solutions
       await handleZombieSolution(bot, msg);
     } catch (error) {
-      console.error("Unhandled error in message handler:", error);
+      console.error("Unhandled error in zombie solution handler:", error);
     }
   });
 
-  // General handler for all callback queries
-  bot.on('callback_query', (callbackQuery) => {
-    handleMenuCallback(bot, callbackQuery);
+  bot.on('callback_query', async (callbackQuery) => {
+    // 1. Handle shelter join callbacks
+    const joinCallbackHandled = await handleShelterJoinCallback(bot, callbackQuery);
+    if (joinCallbackHandled) return;
+
+    // 2. Handle shelter creation callbacks
+    const creationCallbackHandled = await handleCreationCallback(bot, callbackQuery);
+    if (creationCallbackHandled) return;
+
+    // 3. Handle menu callbacks (if not a creation callback)
+    await handleMenuCallback(bot, callbackQuery);
   });
 
-  // Handler for when the bot is removed from a group
   bot.on('left_chat_member', async (msg) => {
-    const leftMember = msg.left_chat_member;
-    if (leftMember && leftMember.id === botInfo.id) {
+    if (msg.left_chat_member && msg.left_chat_member.id === botInfo.id) {
       const chatId = msg.chat.id;
-      console.log(`Bot was removed from group ${chatId}. Cleaning up shelter data.`);
-
+      console.log(`Bot was removed from group ${chatId}. Deleting shelter and associated data.`);
       try {
         // Set shelterId to null for all users in this shelter
         const [updatedUsersCount] = await User.update(
@@ -109,13 +98,19 @@ async function startBot() {
         if (deletedPossibleCount > 0) {
           console.log(`Removed shelter ${chatId} from ${deletedPossibleCount} users' possible lists.`);
         }
+
+        // Finally, delete the shelter itself
+        const shelter = await Shelter.findByPk(chatId);
+        if (shelter) {
+          await shelter.destroy();
+          console.log(`Shelter ${chatId} deleted.`);
+        }
       } catch (error) {
         console.error(`Failed to clean up data for shelter ${chatId}:`, error);
       }
     }
   });
 
-  // Polling error listener
   bot.on('polling_error', (error) => {
     console.error(`Polling Error: [${error.code}] ${error.message}`);
   });
