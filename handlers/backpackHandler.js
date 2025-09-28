@@ -19,6 +19,7 @@ async function handleBackpackMenu(bot, callbackQuery) {
     const content = user.backpackContent ? JSON.parse(user.backpackContent) : [];
     const usedSpace = content.reduce((acc, item) => acc + item.quantity, 0);
     const capacityBar = generateProgressBar(usedSpace, capacity);
+    const fuelBar = generateProgressBar(user.fuel, 5);
 
     let contentText = '**محتویات کوله پشتی:**\n';
     if (content.length > 0) {
@@ -29,7 +30,7 @@ async function handleBackpackMenu(bot, callbackQuery) {
       contentText += 'کوله پشتی شما خالی است.';
     }
 
-    const text = `**🎒 کوله پشتی شما (سطح ${user.backpackLevel})**\n\n- **ظرفیت:** ${capacityBar}\n\n${contentText}`;
+    const text = `**🎒 کوله پشتی شما (سطح ${user.backpackLevel})**\n\n- **ظرفیت:**\n${capacityBar}\n- **موجودی سوخت:**\n${fuelBar}\n\n${contentText}`;
 
     await bot.editMessageText(text, {
       chat_id: chatId,

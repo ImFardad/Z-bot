@@ -58,6 +58,30 @@ async function startBot() {
         type: 'backpack_upgrade',
         level: 3,
       },
+      {
+        name: 'بطری آب',
+        description: 'یک بطری آب آشامیدنی تمیز.',
+        price: 20,
+        stock: null, // Infinite, but limited by daily purchase
+        type: 'daily_water',
+        level: null,
+      },
+      {
+        name: 'باطری چراغ قوه',
+        description: 'یک باطری استاندارد برای چراغ قوه و سایر تجهیزات.',
+        price: 15,
+        stock: null, // Infinite, but limited by daily purchase
+        type: 'daily_battery',
+        level: null,
+      },
+      {
+        name: 'سوخت (۱ لیتر)',
+        description: 'یک لیتر سوخت برای وسایل نقلیه یا ژنراتور.',
+        price: 10,
+        stock: null, // Infinite, but limited by daily purchase
+        type: 'daily_fuel',
+        level: null,
+      },
     ];
 
     for (const item of defaultItems) {

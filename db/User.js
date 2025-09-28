@@ -51,6 +51,11 @@ const User = sequelize.define(
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  fuel: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
   },
   {
     // Model options
