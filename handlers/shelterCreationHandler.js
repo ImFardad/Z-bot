@@ -3,6 +3,7 @@ const Shelter = require('../db/Shelter');
 const allProvinces = require('../iran/provinces.json');
 const allCities = require('../iran/cities.json');
 const geminiService = require('../services/geminiService');
+const stringSimilarity = require('string-similarity');
 
 const creationState = {};
 
@@ -116,7 +117,14 @@ async function handleCreationReply(bot, msg) {
         const promptMessage = await bot.sendMessage(chatId, promptText, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id });
         state.promptMessageId = promptMessage.message_id;
       } else {
-        const suggestions = allProvinces.filter(p => p.name.includes(userInput)).slice(0, 5);
+        const provinceNames = allProvinces.map(p => p.name);
+        const matches = stringSimilarity.findBestMatch(userInput, provinceNames);
+        const suggestions = matches.ratings
+          .filter(r => r.rating > 0.3) // Threshold to avoid bad matches
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 3)
+          .map(r => allProvinces.find(p => p.name === r.target));
+
         if (suggestions.length > 0) {
           const keyboard = suggestions.map(p => ([{ text: p.name, callback_data: `creation:province:${p.id}` }]));
           const promptText = '⚠️ **استان یافت نشد**\n\nآیا منظورتان یکی از موارد زیر است؟\n\nاگر استان شما در لیست نیست، لطفاً نام آن را با دقت و املای صحیح دوباره ارسال کنید.';
@@ -139,7 +147,14 @@ async function handleCreationReply(bot, msg) {
         state.data.city = exactMatch;
         await findAndFinalizeShelterLocation(bot, chatId);
       } else {
-        const suggestions = citiesInProvince.filter(c => c.name.includes(userInput)).slice(0, 5);
+        const cityNames = citiesInProvince.map(c => c.name);
+        const matches = stringSimilarity.findBestMatch(userInput, cityNames);
+        const suggestions = matches.ratings
+          .filter(r => r.rating > 0.3) // Threshold to avoid bad matches
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 3)
+          .map(r => citiesInProvince.find(c => c.name === r.target));
+
         if (suggestions.length > 0) {
           const keyboard = suggestions.map(c => ([{ text: c.name, callback_data: `creation:city:${c.id}` }]));
           const promptText = '⚠️ **شهر یافت نشد**\n\nآیا منظورتان یکی از موارد زیر است؟\n\nاگر شهر شما در لیست نیست، لطفاً نام آن را با دقت و املای صحیح دوباره ارسال کنید.';

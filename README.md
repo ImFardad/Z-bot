@@ -84,8 +84,8 @@ GEMINI_API_KEYS="YOUR_GEMINI_KEY_1,YOUR_GEMINI_KEY_2"
 # شناسه عددی کاربری که ادمین ربات خواهد بود (اختیاری)
 ADMIN_USER_ID="YOUR_TELEGRAM_USER_ID"
 
-# نام مدل Gemini مورد استفاده (اختیاری، پیش‌فرض: gemini-1.5-flash)
-GEMINI_MODEL_NAME=gemini-1.5-flash
+# نام مدل Gemini مورد استفاده (اختیاری، پیش‌فرض: gemini-2.5-flash-lite)
+GEMINI_MODEL_NAME=gemini-2.5-flash-lite
 ```
 - برای پیدا کردن شناسه کاربری خود، می‌توانید به ربات [userinfobot](https://t.me/userinfobot) پیام دهید.
 

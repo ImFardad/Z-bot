@@ -19,7 +19,8 @@
     "lodash": "^4.17.21",
     "node-telegram-bot-api": "^0.66.0",
     "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "string-similarity": "^4.0.4"
   },
   "devDependencies": {
     "eslint": "^9.36.0",
