@@ -55,8 +55,6 @@ async function handleShopMenu(bot, callbackQuery) {
 
 async function handleShopBuyCallback(bot, callbackQuery) {
   const userId = callbackQuery.from.id;
-  const messageId = callbackQuery.message.message_id;
-  const chatId = callbackQuery.message.chat.id;
   const itemId = callbackQuery.data.split(':')[2];
 
   try {

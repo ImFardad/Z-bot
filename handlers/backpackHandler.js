@@ -1,4 +1,5 @@
 const User = require('../db/User');
+const { generateProgressBar } = require('../utils/progressBar');
 
 async function handleBackpackMenu(bot, callbackQuery) {
   const chatId = callbackQuery.message.chat.id;
@@ -17,6 +18,7 @@ async function handleBackpackMenu(bot, callbackQuery) {
     const capacity = 50 + (user.backpackLevel - 1) * 25; // 50, 75, 100
     const content = user.backpackContent ? JSON.parse(user.backpackContent) : [];
     const usedSpace = content.reduce((acc, item) => acc + item.quantity, 0);
+    const capacityBar = generateProgressBar(usedSpace, capacity);
 
     let contentText = '**محتویات کوله پشتی:**\n';
     if (content.length > 0) {
@@ -27,7 +29,7 @@ async function handleBackpackMenu(bot, callbackQuery) {
       contentText += 'کوله پشتی شما خالی است.';
     }
 
-    const text = `**🎒 کوله پشتی شما (سطح ${user.backpackLevel})**\n\n- **ظرفیت:** ${usedSpace} / ${capacity}\n\n${contentText}`;
+    const text = `**🎒 کوله پشتی شما (سطح ${user.backpackLevel})**\n\n- **ظرفیت:** ${capacityBar}\n\n${contentText}`;
 
     await bot.editMessageText(text, {
       chat_id: chatId,
