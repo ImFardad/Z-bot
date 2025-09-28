@@ -228,8 +228,11 @@ async function finalizeShelterCreation(bot, chatId) {
     const initiatorUser = await User.findByPk(state.initiator);
     const initiatorName = [initiatorUser.firstName, initiatorUser.lastName].filter(Boolean).join(' ');
 
-    const successText = `**🏕️ پناهگاه «${shelterData.name}» با موفقیت ایجاد شد!**\n\n**اطلاعات پناهگاه:**\n- استان: ${shelterData.province}\n- شهر: ${shelterData.city}\n\n**${initiatorName}** (سازنده) به طور خودکار به این پناهگاه ملحق شد.\n\nسایر اعضا می‌توانند با استفاده از دکمه «پیوستن به پناهگاه» که با دستور /shelter ظاهر می‌شود، عضو شوند.`;
+    const successText = `**🏕️ پناهگاه «${shelterData.name}» با موفقیت ایجاد شد!**\n\n**اطلاعات پناهگاه:**\n- استان: ${shelterData.province}\n- شهر: ${shelterData.city}\n\nسایر اعضا می‌توانند با استفاده از دکمه «پیوستن به پناهگاه» که با دستور /shelter ظاهر می‌شود، عضو شوند.`;
     await bot.sendMessage(chatId, successText, { parse_mode: 'Markdown' });
+
+    const joinNotificationText = `➕ **یک بازمانده جدید به پناهگاه پیوست!**\n\nبازمانده «${initiatorName}» (سازنده) اکنون عضو این پناهگاه است.`;
+    await bot.sendMessage(chatId, joinNotificationText, { parse_mode: 'Markdown' });
 
   } catch (error) {
     console.error('Error finalizing shelter creation:', error);
@@ -260,7 +263,7 @@ async function handleShelterJoinCallback(bot, callbackQuery) {
       await User.update({ shelterId: chatId }, { where: { id: userId } });
       await bot.answerCallbackQuery(callbackQuery.id, { text: '✅ شما با موفقیت به پناهگاه ملحق شدید!' });
       const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');
-      const text = `➕ **یک بازمانده جدید به پناهگاه پیوست!**\n\nکاربر «${userName}» اکنون عضو این پناهگاه است.`;
+      const text = `➕ **یک بازمانده جدید به پناهگاه پیوست!**\n\nبازمانده «${userName}» اکنون عضو این پناهگاه است.`;
       await bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
     }
     return true;

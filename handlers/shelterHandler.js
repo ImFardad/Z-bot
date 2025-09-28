@@ -102,7 +102,7 @@ async function handleLeaveShelterDo(bot, callbackQuery) {
 
     // Send notification to the old shelter
     try {
-      const notificationText = `➖ **یک بازمانده پناهگاه را ترک کرد!**\n\nکاربر «${userName}» دیگر عضو این پناهگاه نیست.`;
+      const notificationText = `➖ **یک بازمانده پناهگاه را ترک کرد!**\n\nبازمانده «${userName}» دیگر عضو این پناهگاه نیست.`;
       await bot.sendMessage(oldShelterId, notificationText, { parse_mode: 'Markdown' });
     } catch (e) {
       console.error(`Failed to send leave notification to shelter ${oldShelterId}:`, e.message);

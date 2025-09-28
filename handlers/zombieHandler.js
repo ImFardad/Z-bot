@@ -122,7 +122,7 @@ async function handleZombieSolution(bot, msg) {
           `🧟 **مجموع احتمال بقا:** ${newSurvivalPercentage.toFixed(2)}%`;
 
         } else {
-          resultText = '❌ **خطای داخلی**\n\nاطلاعات کاربری شما یافت نشد. لطفاً دوباره تلاش کنید.';
+          resultText = '❌ **خطای داخلی**\n\nاطلاعات بازمانده یافت نشد. لطفاً دوباره تلاش کنید.';
         }
       } catch (error) {
         console.error('Failed to process zombie solution:', error);
