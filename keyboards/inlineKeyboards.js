@@ -2,7 +2,8 @@ const { adminId } = require('../config');
 
 const menus = {
   main: {
-    text: (name) => `سلام **${name}**، به آخرالزمان خوش آمدی!\n\nاز طریق منوی زیر می‌توانی برای بقا تلاش کنی:`,
+    text: (name) =>
+      `سلام **${name}**، به آخرالزمان خوش آمدی!\n\nاز طریق منوی زیر می‌توانی برای بقا تلاش کنی:`,
     options: (userId) => {
       const keyboard = [
         [{ text: '🧟 سناریو زامبی', callback_data: 'action:start_zombie' }],
@@ -12,7 +13,9 @@ const menus = {
 
       // Add admin panel button if the user is an admin
       if (userId && userId.toString() === adminId) {
-        keyboard.push([{ text: '👑 پنل ادمین', callback_data: 'navigate:admin:main' }]);
+        keyboard.push([
+          { text: '👑 پنل ادمین', callback_data: 'navigate:admin:main' },
+        ]);
       }
 
       return {
@@ -29,7 +32,12 @@ const menus = {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🗑 پاکسازی تاریخچه سناریوها', callback_data: 'admin:clear_history:admin' }],
+          [
+            {
+              text: '🗑 پاکسازی تاریخچه سناریوها',
+              callback_data: 'admin:clear_history:admin',
+            },
+          ],
         ],
       },
     },
@@ -42,7 +50,10 @@ const menus = {
         inline_keyboard: [
           [
             { text: '❌ نه، لغو کن', callback_data: 'navigate:admin:main' }, // Go back to admin panel
-            { text: '✅ بله، پاک کن', callback_data: 'admin_confirm:clear_history:admin' }, // Pass parent
+            {
+              text: '✅ بله، پاک کن',
+              callback_data: 'admin_confirm:clear_history:admin',
+            }, // Pass parent
           ],
         ],
       },

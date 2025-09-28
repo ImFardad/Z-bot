@@ -1,8 +1,10 @@
 const globals = require('globals');
 const js = require('@eslint/js');
+const prettier = require('eslint-config-prettier');
 
 module.exports = [
   js.configs.recommended,
+  prettier,
   {
     languageOptions: {
       globals: {
@@ -12,10 +14,7 @@ module.exports = [
       sourceType: 'commonjs',
     },
     rules: {
-      'indent': ['error', 2],
-      'linebreak-style': ['error', 'unix'],
-      'quotes': ['error', 'single'],
-      'semi': ['error', 'always'],
-    }
-  }
+      'no-unused-vars': ['warn', { args: 'none' }],
+    },
+  },
 ];

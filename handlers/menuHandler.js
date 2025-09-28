@@ -1,8 +1,12 @@
 const { menus } = require('../keyboards/inlineKeyboards');
 const { startZombieScenario } = require('./zombieHandler');
-const { handleManageShelter, handleJoinShelter, handleLeaveShelterConfirm, handleLeaveShelterDo } = require('./shelterHandler');
+const {
+  handleManageShelter,
+  handleJoinShelter,
+  handleLeaveShelterConfirm,
+  handleLeaveShelterDo,
+} = require('./shelterHandler');
 const { handleStart, activeMenuMessages } = require('./startHandler');
-const { adminId } = require('../config');
 const User = require('../db/User');
 const _ = require('lodash');
 
@@ -17,13 +21,20 @@ async function handleMenuCallback(bot, callbackQuery) {
   // Answer the callback query immediately to prevent timeout errors,
   // unless it's an action that needs to show an alert.
   if (queryData !== 'action:show_score') {
-    try { await bot.answerCallbackQuery(callbackQuery.id); } catch (e) { /* ignore */ }
+    try {
+      await bot.answerCallbackQuery(callbackQuery.id);
+    } catch {
+      /* ignore */
+    }
   }
 
   // Active Menu Check
   if (activeMenuMessages[chatId] && activeMenuMessages[chatId] !== messageId) {
-    try { await bot.deleteMessage(chatId, messageId); } catch(e) { /* Ignore */ }
-    // We don't need to answer the query again here as it's likely already answered or invalid.
+    try {
+            await bot.deleteMessage(chatId, messageId);
+          } catch {
+            /* Ignore */
+          }    // We don't need to answer the query again here as it's likely already answered or invalid.
     return;
   }
 
@@ -63,16 +74,30 @@ async function handleMenuCallback(bot, callbackQuery) {
 
       const targetMenu = menus[menuName];
       if (targetMenu) {
-        const text = (typeof targetMenu.text === 'function') ? targetMenu.text(user.first_name) : targetMenu.text;
-        const options = _.cloneDeep((typeof targetMenu.options === 'function') ? targetMenu.options(user.id) : targetMenu.options);
+        const text =
+          typeof targetMenu.text === 'function'
+            ? targetMenu.text(user.first_name)
+            : targetMenu.text;
+        const options = _.cloneDeep(
+          typeof targetMenu.options === 'function'
+            ? targetMenu.options(user.id)
+            : targetMenu.options
+        );
 
         if (parentMenuName) {
           if (!options.reply_markup) options.reply_markup = {};
-          if (!options.reply_markup.inline_keyboard) options.reply_markup.inline_keyboard = [];
-          options.reply_markup.inline_keyboard.push([{ text: '➡️ بازگشت', callback_data: `navigate:${parentMenuName}` }]);
+          if (!options.reply_markup.inline_keyboard)
+            options.reply_markup.inline_keyboard = [];
+          options.reply_markup.inline_keyboard.push([
+            { text: '➡️ بازگشت', callback_data: `navigate:${parentMenuName}` },
+          ]);
         }
-        
-        await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, ...options });
+
+        await bot.editMessageText(text, {
+          chat_id: chatId,
+          message_id: messageId,
+          ...options,
+        });
       }
       return;
     }
@@ -88,21 +113,25 @@ async function handleMenuCallback(bot, callbackQuery) {
       } else if (actionName === 'show_score') {
         try {
           const userRecord = await User.findByPk(user.id);
-          const survivalPercentage = userRecord ? userRecord.survivalPercentage : 0;
+          const survivalPercentage = userRecord
+            ? userRecord.survivalPercentage
+            : 0;
           await bot.answerCallbackQuery(callbackQuery.id, {
             text: `🧟 احتمال بقا: ${survivalPercentage.toFixed(2)}%`,
             show_alert: true,
           });
         } catch (error) {
           console.error('Failed to retrieve user score:', error);
-          await bot.answerCallbackQuery(callbackQuery.id, { text: 'خطایی در دریافت امتیاز رخ داد.', show_alert: true });
+          await bot.answerCallbackQuery(callbackQuery.id, {
+            text: 'خطایی در دریافت امتیاز رخ داد.',
+            show_alert: true,
+          });
         }
       }
       return;
     }
-
   } catch (error) {
-    console.error("An error occurred in handleMenuCallback:", error);
+    console.error('An error occurred in handleMenuCallback:', error);
   } finally {
     userActionLocks.delete(user.id);
   }

@@ -6,7 +6,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "set DOTENV_CONFIG_SILENT=true&& nodemon --quiet index.js",
-    "lint": "eslint .",
+    "lint": "eslint . --fix",
+    "format": "prettier --write .",
     "prepare": "husky"
   },
   "keywords": [],
@@ -26,6 +27,8 @@
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "husky": "^9.1.7",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "prettier": "^3.3.3",
+    "eslint-config-prettier": "^9.1.0"
   }
 }

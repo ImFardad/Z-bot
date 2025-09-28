@@ -2,9 +2,13 @@ const TelegramBot = require('node-telegram-bot-api');
 const { token } = require('./config');
 const { handleStart } = require('./handlers/startHandler');
 const { handleMenuCallback } = require('./handlers/menuHandler');
-const { handleCreateShelterCommand, handleCreationReply, handleCreationCallback, handleShelterJoinCallback } = require('./handlers/shelterCreationHandler');
+const {
+  handleCreateShelterCommand,
+  handleCreationReply,
+  handleCreationCallback,
+  handleShelterJoinCallback,
+} = require('./handlers/shelterCreationHandler');
 const { handleZombieSolution } = require('./handlers/zombieHandler');
-const { handleListShelterMembers } = require('./handlers/shelterHandler');
 const sequelize = require('./db/database');
 
 async function startBot() {
@@ -43,18 +47,27 @@ async function startBot() {
 
   await bot.setMyCommands([
     { command: 'start', description: 'شروع کار با ربات (فقط در چت خصوصی)' },
-    { command: 'shelter', description: 'ایجاد یا نمایش اطلاعات پناهگاه (فقط در گروه)' },
+    {
+      command: 'shelter',
+      description: 'ایجاد یا نمایش اطلاعات پناهگاه (فقط در گروه)',
+    },
   ]);
   console.log('Bot commands set successfully.');
 
   bot.onText(/\/start/, (msg) => handleStart(bot, msg));
-  
+
   bot.onText(/\/shelter/, async (msg) => {
     const userExists = await isUserRegistered(msg.from.id);
     if (!userExists) {
       try {
-        await bot.sendMessage(msg.chat.id, 'برای استفاده از امکانات ربات در گروه، ابتدا باید ربات را در چت خصوصی استارت کنید.', { reply_to_message_id: msg.message_id });
-      } catch(e) { console.error(e); }
+        await bot.sendMessage(
+          msg.chat.id,
+          'برای استفاده از امکانات ربات در گروه، ابتدا باید ربات را در چت خصوصی استارت کنید.',
+          { reply_to_message_id: msg.message_id }
+        );
+      } catch (e) {
+        console.error(e);
+      }
       return;
     }
     handleCreateShelterCommand(bot, msg);
@@ -72,7 +85,7 @@ async function startBot() {
     try {
       await handleZombieSolution(bot, msg);
     } catch (error) {
-      console.error("Unhandled error in zombie solution handler:", error);
+      console.error('Unhandled error in zombie solution handler:', error);
     }
   });
 
@@ -80,17 +93,28 @@ async function startBot() {
     const userExists = await isUserRegistered(callbackQuery.from.id);
     if (!userExists) {
       try {
-        await bot.answerCallbackQuery(callbackQuery.id, { text: 'برای استفاده از دکمه‌ها، ابتدا باید ربات را در چت خصوصی استارت کنید.', show_alert: true });
-      } catch(e) { console.error(e); }
+        await bot.answerCallbackQuery(callbackQuery.id, {
+          text: 'برای استفاده از دکمه‌ها، ابتدا باید ربات را در چت خصوصی استارت کنید.',
+          show_alert: true,
+        });
+      } catch (e) {
+        console.error(e);
+      }
       return;
     }
 
     // 1. Handle shelter join callbacks
-    const joinCallbackHandled = await handleShelterJoinCallback(bot, callbackQuery);
+    const joinCallbackHandled = await handleShelterJoinCallback(
+      bot,
+      callbackQuery
+    );
     if (joinCallbackHandled) return;
 
     // 2. Handle shelter creation callbacks
-    const creationCallbackHandled = await handleCreationCallback(bot, callbackQuery);
+    const creationCallbackHandled = await handleCreationCallback(
+      bot,
+      callbackQuery
+    );
     if (creationCallbackHandled) return;
 
     // 3. Handle menu callbacks (if not a creation callback)
@@ -100,7 +124,9 @@ async function startBot() {
   bot.on('left_chat_member', async (msg) => {
     if (msg.left_chat_member && msg.left_chat_member.id === botInfo.id) {
       const chatId = msg.chat.id;
-      console.log(`Bot was removed from group ${chatId}. Deleting shelter and associated data.`);
+      console.log(
+        `Bot was removed from group ${chatId}. Deleting shelter and associated data.`
+      );
       try {
         // Set shelterId to null for all users in this shelter
         const [updatedUsersCount] = await User.update(
@@ -108,7 +134,9 @@ async function startBot() {
           { where: { shelterId: chatId } }
         );
         if (updatedUsersCount > 0) {
-          console.log(`Removed ${updatedUsersCount} users from shelter ${chatId}.`);
+          console.log(
+            `Removed ${updatedUsersCount} users from shelter ${chatId}.`
+          );
         }
 
         // Finally, delete the shelter itself

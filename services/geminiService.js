@@ -16,7 +16,10 @@ const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-1.5-flash';
 // Initialize API keys and the first model instance
 const keysString = process.env.GEMINI_API_KEYS;
 if (keysString) {
-  apiKeys = keysString.split(',').map(k => k.trim()).filter(k => k);
+  apiKeys = keysString
+    .split(',')
+    .map((k) => k.trim())
+    .filter((k) => k);
   if (apiKeys.length > 0) {
     console.log(`Loaded ${apiKeys.length} Gemini API key(s).`);
     try {
@@ -25,7 +28,10 @@ if (keysString) {
       // The user mentioned they fixed the issue with this model name
       model = genAI.getGenerativeModel({ model: modelName, generationConfig });
     } catch (error) {
-      console.error(`Could not initialize Gemini AI with key at index ${currentApiKeyIndex}.`, error);
+      console.error(
+        `Could not initialize Gemini AI with key at index ${currentApiKeyIndex}.`,
+        error
+      );
       model = null;
     }
   } else {
@@ -33,7 +39,9 @@ if (keysString) {
     model = null;
   }
 } else {
-  console.warn('GEMINI_API_KEYS is not set in .env file. Gemini features will be disabled.');
+  console.warn(
+    'GEMINI_API_KEYS is not set in .env file. Gemini features will be disabled.'
+  );
   model = null;
 }
 
@@ -44,7 +52,9 @@ if (keysString) {
  */
 async function generateWithRotation(prompt) {
   if (allKeysExhausted || !model) {
-    console.error('Aborting generation: All API keys are exhausted or model is not initialized.');
+    console.error(
+      'Aborting generation: All API keys are exhausted or model is not initialized.'
+    );
     return null;
   }
 
@@ -54,8 +64,13 @@ async function generateWithRotation(prompt) {
     return response.text();
   } catch (error) {
     // Check for quota error (429 is the standard code, but check message for 'quota' as a fallback)
-    if (error.status === 429 || (error.message && error.message.toLowerCase().includes('quota'))) {
-      console.warn(`API key at index ${currentApiKeyIndex} is exhausted or rate-limited.`);
+    if (
+      error.status === 429 ||
+      (error.message && error.message.toLowerCase().includes('quota'))
+    ) {
+      console.warn(
+        `API key at index ${currentApiKeyIndex} is exhausted or rate-limited.`
+      );
       currentApiKeyIndex++;
 
       if (currentApiKeyIndex >= apiKeys.length) {
@@ -69,23 +84,31 @@ async function generateWithRotation(prompt) {
       try {
         genAI = new GoogleGenerativeAI(apiKeys[currentApiKeyIndex]);
         const generationConfig = { temperature: 0.9 };
-        model = genAI.getGenerativeModel({ model: modelName, generationConfig });
-        
+        model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig,
+        });
+
         // Retry the request with the new key
         return generateWithRotation(prompt);
       } catch (initError) {
-        console.error(`Failed to initialize Gemini with new key at index ${currentApiKeyIndex}.`, initError);
+        console.error(
+          `Failed to initialize Gemini with new key at index ${currentApiKeyIndex}.`,
+          initError
+        );
         // Try the next key in the list
         return generateWithRotation(prompt); // This recursive call will handle further key switching
       }
     } else {
       // It's a different, unexpected error
-      console.error('An unexpected error occurred during Gemini content generation:', error);
+      console.error(
+        'An unexpected error occurred during Gemini content generation:',
+        error
+      );
       throw error; // Re-throw for the calling function to handle
     }
   }
 }
-
 
 async function generateZombieScenario(userId) {
   if (allKeysExhausted || !model) return null;
@@ -110,14 +133,16 @@ async function generateZombieScenario(userId) {
       limit: historyLimit,
       attributes: ['question'],
     });
-    const recentScenarioList = recentScenarios.map(item => `- ${item.question}`).join('\n');
+    const recentScenarioList = recentScenarios
+      .map((item) => `- ${item.question}`)
+      .join('\n');
 
     // 3. Create the new, improved dynamic prompt
     const prompt = `You are a creative and unforgiving survival simulation master. Your goal is to generate a unique, realistic, and thought-provoking survival scenario in a post-apocalyptic zombie world. The scenario must test the user's problem-solving skills, resourcefulness, and ethical decision-making.\n\n**Your Thought Process (Follow these steps):**\n1.  **Choose a Core Survival Theme:** Pick one theme from the following list. Do NOT always default to simple scarcity (like lack of water/food).\n    *   **Technical/Mechanical Failure:** A crucial piece of gear breaks (vehicle, generator, water purifier, weapon).\n    *   **Environmental Hazard:** A natural disaster occurs (flash flood, fire, extreme cold), complicated by the presence of zombies.\n    *   **Social/Ethical Dilemma:** The user encounters other survivors, leading to a difficult choice (e.g., share limited resources, trust a stranger, deal with a conflict within their group).\n    *   **Medical Emergency:** The user or an ally is injured or sick, requiring immediate and improvised medical attention.\n    *   **Stealth/Infiltration:** The user needs to get something from a heavily infested area without being detected.\n    *   **Fortification/Defense:** The user's current safe spot is about to be overrun, and they need to creatively reinforce it or escape.\n\n2.  **Establish the Context:** Briefly describe the user's location and immediate situation. Make it specific (e.g., "a half-flooded subway station," "the rooftop of a hospital," "a dense, foggy forest").\n\n3.  **Create the Challenge:** Based on the chosen theme and context, present a clear, urgent problem. The solution should not be obvious.\n\n**Strict Output Rules:**\n-   The scenario must be in Persian.\n-   Structure the output into two sections: **موقعیت:** (Situation) and **چالش:** (Challenge).\n-   Your response MUST contain ONLY the scenario text itself. No pre-amble, no hints, no solutions.\n-   **CRITICAL:** Do NOT generate a scenario similar to these recent ones:\n    ${recentScenarioList.length > 0 ? recentScenarioList : '(No recent scenarios)'}\n\nNow, execute your thought process and generate the scenario.`;
 
     // 4. Generate content using the rotation helper
     const text = await generateWithRotation(prompt);
-    
+
     if (!text) {
       return null; // All keys exhausted or other generation error
     }
@@ -134,28 +159,29 @@ async function generateZombieScenario(userId) {
     // 6. Prune old scenarios, keeping only the newest ones up to the limit
     try {
       const userScenarios = await UserQuestionHistory.findAll({
-          where: { userId: userId, type: 'zombie' },
-          order: [['createdAt', 'DESC']],
-          attributes: ['id']
+        where: { userId: userId, type: 'zombie' },
+        order: [['createdAt', 'DESC']],
+        attributes: ['id'],
       });
 
       if (userScenarios.length > historyLimit) {
-          const idsToDelete = userScenarios.slice(historyLimit).map(s => s.id);
-          await UserQuestionHistory.destroy({
-              where: {
-                  id: {
-                      [Op.in]: idsToDelete
-                  }
-              }
-          });
-          console.log(`Pruned ${idsToDelete.length} old scenarios for user ${userId}.`);
+        const idsToDelete = userScenarios.slice(historyLimit).map((s) => s.id);
+        await UserQuestionHistory.destroy({
+          where: {
+            id: {
+              [Op.in]: idsToDelete,
+            },
+          },
+        });
+        console.log(
+          `Pruned ${idsToDelete.length} old scenarios for user ${userId}.`
+        );
       }
     } catch (pruneError) {
-        console.error('Error pruning old scenarios:', pruneError);
+      console.error('Error pruning old scenarios:', pruneError);
     }
 
     return newScenario;
-
   } catch (error) {
     console.error('Error in generateZombieScenario function:', error);
     return null;
@@ -193,16 +219,22 @@ Now, evaluate the user's solution and provide the JSON response.`;
     if (!text) return null; // All keys exhausted
 
     // Clean the response to ensure it's a valid JSON
-    const cleanedText = text.trim().replace(/```json/g, '').replace(/```/g, '');
+    const cleanedText = text
+      .trim()
+      .replace(/```json/g, '')
+      .replace(/```/g, '');
 
     try {
       const parsed = JSON.parse(cleanedText);
       return parsed;
     } catch (e) {
-      console.error('Failed to parse JSON from Gemini evaluation:', cleanedText, e);
+      console.error(
+        'Failed to parse JSON from Gemini evaluation:',
+        cleanedText,
+        e
+      );
       return null;
     }
-
   } catch (error) {
     console.error('Error evaluating zombie solution with Gemini:', error);
     return null;
@@ -212,7 +244,8 @@ Now, evaluate the user's solution and provide the JSON response.`;
 async function generateShelterLocation(province, city, existingLocations) {
   if (allKeysExhausted || !model) return null;
 
-  const existingLocationsString = existingLocations.length > 0 ? existingLocations.join(', ') : 'هیچکدام';
+  const existingLocationsString =
+    existingLocations.length > 0 ? existingLocations.join(', ') : 'هیچکدام';
 
   const prompt = `
     You are a creative location scout in a post-apocalyptic world. Your task is to find a single, specific, real, and recognizable location in a given city and province to be used as a shelter. The location should be a well-known place like a park, a historical building, a large public facility, a specific monument, etc.
