@@ -9,6 +9,7 @@ const {
   handleShelterJoinCallback,
 } = require('./handlers/shelterCreationHandler');
 const { handleZombieSolution } = require('./handlers/zombieHandler');
+const { handleManageShelterCommand, handleShelterManagerCallback, handleDonationReply } = require('./handlers/shelterManagerHandler');
 const sequelize = require('./db/database');
 
 async function startBot() {
@@ -114,6 +115,10 @@ async function startBot() {
       command: 'shelter',
       description: 'ایجاد یا نمایش اطلاعات پناهگاه (فقط در گروه)',
     },
+    {
+      command: 'manage_shelter',
+      description: 'مدیریت پناهگاه (فقط در گروه پناهگاه)',
+    },
   ]);
   console.log('Bot commands set successfully.');
 
@@ -136,6 +141,8 @@ async function startBot() {
     handleCreateShelterCommand(bot, msg);
   });
 
+  bot.onText(/\/manage_shelter/, (msg) => handleManageShelterCommand(bot, msg));
+
   bot.on('message', async (msg) => {
     // Ignore commands, they are handled by onText
     if (msg.text && msg.text.startsWith('/')) return;
@@ -144,7 +151,11 @@ async function startBot() {
     const creationHandled = await handleCreationReply(bot, msg);
     if (creationHandled) return;
 
-    // 2. Handle zombie solutions (if not a creation reply)
+    // 2. Handle donation replies
+    const donationHandled = await handleDonationReply(bot, msg);
+    if (donationHandled) return;
+
+    // 3. Handle zombie solutions (if not a creation reply)
     try {
       await handleZombieSolution(bot, msg);
     } catch (error) {
@@ -180,7 +191,14 @@ async function startBot() {
     );
     if (creationCallbackHandled) return;
 
-    // 3. Handle menu callbacks (if not a creation callback)
+    // 3. Handle shelter management callbacks
+    const managerCallbackHandled = await handleShelterManagerCallback(
+      bot,
+      callbackQuery
+    );
+    if (managerCallbackHandled) return;
+
+    // 4. Handle menu callbacks (if not a creation callback)
     await handleMenuCallback(bot, callbackQuery);
   });
 

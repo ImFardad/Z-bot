@@ -21,11 +21,15 @@ const Shelter = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    preciseLocation: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-  },
+      preciseLocation: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      treasury: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },  },
   {
     timestamps: true,
   }
