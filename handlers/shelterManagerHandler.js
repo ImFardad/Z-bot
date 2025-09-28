@@ -33,7 +33,12 @@ async function handleManageShelterCommand(bot, msg) {
       return bot.sendMessage(chatId, 'شما عضو این پناهگاه نیستید و نمی‌توانید آن را مدیریت کنید.', { reply_to_message_id: msg.message_id });
     }
 
-    const text = `**🛠️ مدیریت پناهگاه «${shelter.name}»**\n\n- **خزانه:** ${shelter.treasury} سکه 🪙`;
+    const currentLevelInfo = TANKER_CONFIG.levels[shelter.fuelTankerLevel];
+    const tankerBar = generateProgressBar(
+      shelter.fuelTankerContent,
+      currentLevelInfo.capacity
+    );
+    const text = `**🛠️ مدیریت پناهگاه «${shelter.name}»**\n\n- **خزانه:** ${shelter.treasury} سکه 🪙\n- **تانکر سوخت:**\n${tankerBar}`;
     const keyboard = {
       inline_keyboard: [
         [{ text: '💰 خزانه', callback_data: 'shelter_manage:treasury' }],
@@ -107,6 +112,7 @@ async function handleShelterManagerCallback(bot, callbackQuery) {
         const keyboard = {
             inline_keyboard: [
                 [{ text: '💰 خزانه', callback_data: 'shelter_manage:treasury' }],
+                [{ text: '⛽️ تانکر سوخت', callback_data: 'shelter_manage:tanker' }],
             ],
         };
         await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: keyboard });
@@ -167,17 +173,19 @@ async function handleDonationReply(bot, msg) {
 
     const amount = parseInt(msg.text.trim(), 10);
 
-    try {
-        if (isNaN(amount) || amount <= 0) {
-            return bot.sendMessage(chatId, '❌ مبلغ وارد شده نامعتبر است. لطفاً یک عدد صحیح و مثبت وارد کنید.', { reply_to_message_id: msg.message_id });
-        }
+    // On validation error, just send a message and wait for the next reply.
+    if (isNaN(amount) || amount <= 0) {
+        bot.sendMessage(chatId, '❌ مبلغ وارد شده نامعتبر است. لطفاً یک عدد صحیح و مثبت در پاسخ به پیام قبلی ربات وارد کنید.', { reply_to_message_id: msg.message_id });
+        return true; // Handled, but state is preserved.
+    }
 
+    try {
         const user = await User.findByPk(userId);
         const shelter = await Shelter.findByPk(chatId);
 
         if (state.type === 'coin') {
             if (user.coins < amount) {
-                return bot.sendMessage(chatId, '🪙 سکه شما برای اهدای این مبلغ کافی نیست.', { reply_to_message_id: msg.message_id });
+                return bot.sendMessage(chatId, `🪙 سکه شما کافی نیست. (موجودی شما: ${user.coins})`, { reply_to_message_id: msg.message_id });
             }
             user.coins -= amount;
             shelter.treasury += amount;
@@ -186,7 +194,7 @@ async function handleDonationReply(bot, msg) {
             await bot.sendMessage(chatId, `✅ **اهدا با موفقیت انجام شد!**\n\nبازمانده ${user.firstName} مبلغ **${amount}** سکه به خزانه پناهگاه اهدا کرد.\n\n- موجودی جدید شما: ${user.coins} سکه\n- موجودی جدید خزانه: ${shelter.treasury} سکه`, { parse_mode: 'Markdown' });
         } else if (state.type === 'fuel') {
             if (user.fuel < amount) {
-                return bot.sendMessage(chatId, '⛽️ سوخت شما برای اهدای این مقدار کافی نیست.', { reply_to_message_id: msg.message_id });
+                return bot.sendMessage(chatId, `⛽️ سوخت شما کافی نیست. (موجودی شما: ${user.fuel} لیتر)`, { reply_to_message_id: msg.message_id });
             }
             const currentLevelInfo = TANKER_CONFIG.levels[shelter.fuelTankerLevel];
             if (shelter.fuelTankerContent + amount > currentLevelInfo.capacity) {
@@ -199,10 +207,13 @@ async function handleDonationReply(bot, msg) {
             await bot.sendMessage(chatId, `✅ **اهدا با موفقیت انجام شد!**\n\nبازمانده ${user.firstName} مقدار **${amount}** لیتر سوخت به تانکر پناهگاه اهدا کرد.\n\n- موجودی جدید سوخت شما: ${user.fuel} لیتر\n- موجودی جدید تانکر: ${shelter.fuelTankerContent} لیتر`, { parse_mode: 'Markdown' });
         }
 
+        // If transaction is successful, delete the state.
+        delete donationState[stateKey];
+
     } catch (error) {
         console.error('Error in handleDonationReply:', error);
         await bot.sendMessage(chatId, '❌ خطایی در فرآیند اهدا رخ داد.');
-    } finally {
+        // Also delete state on critical error.
         delete donationState[stateKey];
     }
 
