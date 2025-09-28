@@ -268,6 +268,7 @@ async function handleCreationCallback(bot, callbackQuery) {
       const province = allProvinces.find((p) => p.id == selectedId);
       if (province) {
         state.data.province = province;
+        state.step = 'awaiting_city';
         try {
           await bot.deleteMessage(chatId, callbackQuery.message.message_id);
         } catch {
