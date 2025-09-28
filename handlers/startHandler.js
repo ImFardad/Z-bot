@@ -41,26 +41,25 @@ async function handleStart(bot, msg) {
       username: user.username || null,
     });
 
+    const userRecord = await User.findByPk(user.id);
+
     // 1. If an old menu message exists, delete it.
     if (activeMenuMessages[chatId]) {
       try {
         await bot.deleteMessage(chatId, activeMenuMessages[chatId]);
-      } catch (e) {
+      } catch {
         // Ignore if the message was already deleted by the user
-        console.log(
-          `Could not delete old menu message ${activeMenuMessages[chatId]}:`,
-          e.message
-        );
+        // console.log(`Could not delete old menu message ${activeMenuMessages[chatId]}:`, e.message);
       }
     }
 
     // 2. Send the new menu message.
     const mainMenu = menus.main;
-    const welcomeText = mainMenu.text(user.first_name);
+    const welcomeText = mainMenu.text(userRecord.firstName);
     const sentMessage = await bot.sendMessage(
       chatId,
       welcomeText,
-      mainMenu.options(user.id)
+      mainMenu.options(userRecord)
     );
 
     // 3. Store the new message's ID as the active one.

@@ -20,6 +20,7 @@ async function startBot() {
   // Define model associations
   const User = require('./db/User');
   const Shelter = require('./db/Shelter');
+  const ShopItem = require('./db/ShopItem');
   require('./db/UserQuestionHistory');
 
   Shelter.hasMany(User, { foreignKey: 'shelterId' });
@@ -31,9 +32,47 @@ async function startBot() {
     return user !== null;
   }
 
+  async function seedDatabase() {
+    const defaultItems = [
+      {
+        name: 'کوله پشتی کوچک',
+        description: 'یک کوله پشتی ساده با ظرفیت پایه.',
+        price: 150,
+        stock: null, // Infinite
+        type: 'backpack',
+        level: 1,
+      },
+      {
+        name: 'ارتقا به کوله پشتی متوسط',
+        description: 'افزایش ظرفیت کوله پشتی به سطح متوسط.',
+        price: 200,
+        stock: null, // Infinite
+        type: 'backpack_upgrade',
+        level: 2,
+      },
+      {
+        name: 'ارتقا به کوله پشتی بزرگ',
+        description: 'ارتقا کوله پشتی به آخرین سطح با بیشترین ظرفیت.',
+        price: 250,
+        stock: null, // Infinite
+        type: 'backpack_upgrade',
+        level: 3,
+      },
+    ];
+
+    for (const item of defaultItems) {
+      await ShopItem.findOrCreate({
+        where: { type: item.type, level: item.level },
+        defaults: item,
+      });
+    }
+    console.log('Default shop items seeded successfully.');
+  }
+
   try {
     await sequelize.sync();
     console.log('Database synchronized successfully.');
+    await seedDatabase();
   } catch (error) {
     console.error('Unable to synchronize the database:', error);
     process.exit(1);

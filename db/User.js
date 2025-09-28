@@ -34,9 +34,23 @@ const User = sequelize.define(
         model: 'Shelters', // This is the table name, which is pluralized by Sequelize
         key: 'id',
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL',
-    },
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL',
+        },
+  coins: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 10000,
+  },
+  backpackLevel: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  backpackContent: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
   },
   {
     // Model options

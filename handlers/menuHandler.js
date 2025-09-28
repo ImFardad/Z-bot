@@ -6,6 +6,8 @@ const {
   handleLeaveShelterConfirm,
   handleLeaveShelterDo,
 } = require('./shelterHandler');
+const { handleShopMenu, handleShopBuyCallback } = require('./shopHandler');
+const { handleBackpackMenu } = require('./backpackHandler');
 const { handleStart, activeMenuMessages } = require('./startHandler');
 const User = require('../db/User');
 const _ = require('lodash');
@@ -61,6 +63,11 @@ async function handleMenuCallback(bot, callbackQuery) {
       return;
     }
 
+    if (queryData.startsWith('shop:buy:')) {
+      await handleShopBuyCallback(bot, callbackQuery);
+      return;
+    }
+
     // --- Navigation ---
     if (queryData.startsWith('navigate:')) {
       const parts = queryData.split(':');
@@ -110,6 +117,10 @@ async function handleMenuCallback(bot, callbackQuery) {
         await startZombieScenario(bot, callbackQuery);
       } else if (actionName === 'manage_shelter') {
         await handleManageShelter(bot, callbackQuery);
+      } else if (actionName === 'open_shop') {
+        await handleShopMenu(bot, callbackQuery);
+      } else if (actionName === 'open_backpack') {
+        await handleBackpackMenu(bot, callbackQuery);
       } else if (actionName === 'show_score') {
         try {
           const userRecord = await User.findByPk(user.id);
