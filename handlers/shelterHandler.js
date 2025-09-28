@@ -14,7 +14,7 @@ async function handleManageShelter(bot, callbackQuery) {
     const user = await User.findByPk(userId, { include: Shelter });
 
     if (user && user.Shelter) {
-      const text = `**🏕️ پناهگاه فعلی شما**\n\nشما عضو پناهگاه «**${user.Shelter.name}**» هستید.\n\n**اطلاعات پناهگاه:**\n- استان: ${user.Shelter.province}\n- شهر: ${user.Shelter.city}`;
+      const text = `**🏕️ پناهگاه فعلی شما**\n\nشما عضو پناهگاه «**${user.Shelter.name}**» هستید.\n\n**اطلاعات پناهگاه:**\n- استان: ${user.Shelter.province}\n- شهر: ${user.Shelter.city}\n- مکان دقیق: ${user.Shelter.preciseLocation || 'نامشخص'}`;
       await bot.editMessageText(text, {
         chat_id: chatId,
         message_id: messageId,

@@ -209,9 +209,42 @@ Now, evaluate the user's solution and provide the JSON response.`;
   }
 }
 
+async function generateShelterLocation(province, city, existingLocations) {
+  if (allKeysExhausted || !model) return null;
+
+  const existingLocationsString = existingLocations.length > 0 ? existingLocations.join(', ') : 'هیچکدام';
+
+  const prompt = `
+    You are a creative location scout in a post-apocalyptic world. Your task is to find a single, specific, real, and recognizable location in a given city and province to be used as a shelter. The location should be a well-known place like a park, a historical building, a large public facility, a specific monument, etc.
+
+    **Instructions:**
+    1.  **City:** ${city}
+    2.  **Province:** ${province}
+    3.  **CRITICAL:** You MUST NOT suggest any of the following locations, as they are already taken: [${existingLocationsString}]
+    4.  The location MUST NOT be a religious place (e.g., mosque, church, shrine).
+    5.  Your response MUST be only the name of the location in Persian, and nothing else. Do not add any descriptions or introductory text.
+    6.  The name should be concise and clear. For example: "پارک ملت", "برج میلاد", "میدان نقش جهان", "کتابخانه ملی ایران".
+
+    Now, suggest a unique and suitable location.
+  `;
+
+  try {
+    const text = await generateWithRotation(prompt);
+    if (!text) {
+      return null; // All keys exhausted or other generation error
+    }
+    // Clean up the response, removing any potential extra text or quotes
+    return text.trim().replace(/["'`]/g, '');
+  } catch (error) {
+    console.error('Error in generateShelterLocation function:', error);
+    return null;
+  }
+}
+
 module.exports = {
   generateZombieScenario,
   evaluateZombieSolution,
+  generateShelterLocation,
   // A way for handlers to know if the service is disabled
   isEnabled: () => !allKeysExhausted && model,
 };

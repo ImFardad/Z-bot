@@ -2,6 +2,7 @@ const User = require('../db/User');
 const Shelter = require('../db/Shelter');
 const allProvinces = require('../iran/provinces.json');
 const allCities = require('../iran/cities.json');
+const geminiService = require('../services/geminiService');
 
 const creationState = {};
 
@@ -33,7 +34,7 @@ async function handleCreateShelterCommand(bot, msg) {
         memberList += 'این پناهگاه هنوز عضوی ندارد.';
       }
 
-      const infoText = `🏕️ **اطلاعات پناهگاه**\n\n- **نام:** ${existingShelter.name}\n- **استان:** ${existingShelter.province}\n- **شهر:** ${existingShelter.city}${memberList}`;
+      const infoText = `🏕️ **اطلاعات پناهگاه**\n\n- **نام:** ${existingShelter.name}\n- **استان:** ${existingShelter.province}\n- **شهر:** ${existingShelter.city}\n- **مکان دقیق:** ${existingShelter.preciseLocation || 'نامشخص'}${memberList}`;
       
       await bot.sendMessage(chatId, infoText, {
         parse_mode: 'Markdown',
@@ -67,7 +68,7 @@ async function handleCreateShelterCommand(bot, msg) {
       return;
     }
 
-    const promptText = '**🏕️ شروع فرآیند ساخت پناهگاه**\n\nمرحله ۱ از ۳: **انتخاب نام**\n\nلطفاً نام مورد نظر برای پناهگاه را در پاسخ به همین پیام ارسال کنید.';
+    const promptText = '**🏕️ شروع فرآیند ساخت پناهگاه**\n\nمرحله ۱ از ۴: **انتخاب نام**\n\nلطفاً نام مورد نظر برای پناهگاه را در پاسخ به همین پیام ارسال کنید.';
     const promptMessage = await bot.sendMessage(chatId, promptText, { parse_mode: 'Markdown' });
 
     creationState[chatId] = {
@@ -100,7 +101,7 @@ async function handleCreationReply(bot, msg) {
     if (state.step === 'awaiting_name') {
       state.data.name = userInput;
       state.step = 'awaiting_province';
-      const promptText = `✅ نام پناهگاه: **${userInput}**\n\n---\n\nمرحله ۲ از ۳: **انتخاب استان**\n\nلطفاً نام استان محل پناهگاه را ارسال کنید.`;
+      const promptText = `✅ نام پناهگاه: **${userInput}**\n\n---\n\nمرحله ۲ از ۴: **انتخاب استان**\n\nلطفاً نام استان محل پناهگاه را ارسال کنید.`;
       const promptMessage = await bot.sendMessage(chatId, promptText, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id });
       state.promptMessageId = promptMessage.message_id;
       return true;
@@ -111,7 +112,7 @@ async function handleCreationReply(bot, msg) {
       if (exactMatch) {
         state.data.province = exactMatch;
         state.step = 'awaiting_city';
-        const promptText = `✅ استان: **${exactMatch.name}**\n\n---\n\nمرحله ۳ از ۳: **انتخاب شهر**\n\nلطفاً نام شهر مورد نظر در این استان را ارسال کنید.`;
+        const promptText = `مرحله ۳ از ۴: **انتخاب شهر**\n\nلطفاً نام شهر مورد نظر در این استان را ارسال کنید.`;
         const promptMessage = await bot.sendMessage(chatId, promptText, { parse_mode: 'Markdown', reply_to_message_id: msg.message_id });
         state.promptMessageId = promptMessage.message_id;
       } else {
@@ -136,7 +137,7 @@ async function handleCreationReply(bot, msg) {
       const exactMatch = citiesInProvince.find(c => c.name === userInput);
       if (exactMatch) {
         state.data.city = exactMatch;
-        await finalizeShelterCreation(bot, chatId);
+        await findAndFinalizeShelterLocation(bot, chatId);
       } else {
         const suggestions = citiesInProvince.filter(c => c.name.includes(userInput)).slice(0, 5);
         if (suggestions.length > 0) {
@@ -185,7 +186,7 @@ async function handleCreationCallback(bot, callbackQuery) {
         state.data.province = province;
         state.step = 'awaiting_city';
         try { await bot.deleteMessage(chatId, callbackQuery.message.message_id); } catch (e) { /* ignore */ }
-        const promptText = `✅ استان: **${province.name}**\n\n---\n\nمرحله ۳ از ۳: **انتخاب شهر**\n\nلطفاً نام شهر مورد نظر در این استان را ارسال کنید.`;
+        const promptText = `✅ استان: **${province.name}**\n\n---\n\nمرحله ۳ از ۴: **انتخاب شهر**\n\nلطفاً نام شهر مورد نظر در این استان را ارسال کنید.`;
         const promptMessage = await bot.sendMessage(chatId, promptText, { parse_mode: 'Markdown' });
         state.promptMessageId = promptMessage.message_id;
       }
@@ -194,7 +195,7 @@ async function handleCreationCallback(bot, callbackQuery) {
       if (city) {
         state.data.city = city;
         try { await bot.deleteMessage(chatId, callbackQuery.message.message_id); } catch (e) { /* ignore */ }
-        await finalizeShelterCreation(bot, chatId);
+        await findAndFinalizeShelterLocation(bot, chatId);
       }
     }
     return true;
@@ -204,9 +205,42 @@ async function handleCreationCallback(bot, callbackQuery) {
   }
 }
 
+async function findAndFinalizeShelterLocation(bot, chatId) {
+  const state = creationState[chatId];
+  if (!state || !state.data.city) return;
+
+  try {
+    await bot.sendMessage(chatId, '✅ شهر انتخاب شد.\n\nمرحله ۴ از ۴: **یافتن مکان**\n\n⏳ در حال پیدا کردن یک مکان مناسب برای ساخت پناهگاه...', { parse_mode: 'Markdown' });
+
+    const existingSheltersInCity = await Shelter.findAll({
+      where: { city: state.data.city.name },
+      attributes: ['preciseLocation'],
+    });
+    const existingLocations = existingSheltersInCity.map(s => s.preciseLocation).filter(Boolean);
+
+    const location = await geminiService.generateShelterLocation(state.data.province.name, state.data.city.name, existingLocations);
+
+    if (!location) {
+      const errorText = '❌ **خطای سرویس**\n\nمتاسفانه در حال حاضر امکان یافتن مکان مناسب وجود ندارد. لطفاً دقایقی دیگر دوباره برای ساخت پناهگاه تلاش کنید.';
+      await bot.sendMessage(chatId, errorText, { parse_mode: 'Markdown' });
+      delete creationState[chatId];
+      return;
+    }
+
+    state.data.preciseLocation = location;
+    await finalizeShelterCreation(bot, chatId);
+
+  } catch (error) {
+    console.error('Error in findAndFinalizeShelterLocation:', error);
+    const errorText = '❌ **خطای داخلی**\n\nمشکلی در فرآیند یافتن مکان پناهگاه رخ داد. لطفاً دوباره تلاش کنید.';
+    await bot.sendMessage(chatId, errorText, { parse_mode: 'Markdown' });
+    delete creationState[chatId];
+  }
+}
+
 async function finalizeShelterCreation(bot, chatId) {
   const state = creationState[chatId];
-  if (!state || !state.data.name || !state.data.province || !state.data.city) {
+  if (!state || !state.data.name || !state.data.province || !state.data.city || !state.data.preciseLocation) {
     console.error('Finalizing creation failed due to incomplete state:', state);
     const errorText = '❌ **خطای داخلی**\n\nفرآیند ساخت پناهگاه به دلیل نقص اطلاعات متوقف شد. لطفاً دوباره تلاش کنید.';
     await bot.sendMessage(chatId, errorText, { parse_mode: 'Markdown' });
@@ -219,6 +253,7 @@ async function finalizeShelterCreation(bot, chatId) {
     name: state.data.name,
     province: state.data.province.name,
     city: state.data.city.name,
+    preciseLocation: state.data.preciseLocation,
   };
 
   try {
@@ -228,7 +263,7 @@ async function finalizeShelterCreation(bot, chatId) {
     const initiatorUser = await User.findByPk(state.initiator);
     const initiatorName = [initiatorUser.firstName, initiatorUser.lastName].filter(Boolean).join(' ');
 
-    const successText = `**🏕️ پناهگاه «${shelterData.name}» با موفقیت ایجاد شد!**\n\n**اطلاعات پناهگاه:**\n- استان: ${shelterData.province}\n- شهر: ${shelterData.city}\n\nسایر اعضا می‌توانند با استفاده از دکمه «پیوستن به پناهگاه» که با دستور /shelter ظاهر می‌شود، عضو شوند.`;
+    const successText = `**🏕️ پناهگاه «${shelterData.name}» با موفقیت ایجاد شد!**\n\nیک مکان امن و خالی در نزدیکی «**${shelterData.preciseLocation}**» پیدا شد و پناهگاه شما در آنجا برپا شد.\n\n**اطلاعات پناهگاه:**\n- استان: ${shelterData.province}\n- شهر: ${shelterData.city}\n\nسایر اعضا می‌توانند با استفاده از دکمه «پیوستن به پناهگاه» که با دستور /shelter ظاهر می‌شود، عضو شوند.`;
     await bot.sendMessage(chatId, successText, { parse_mode: 'Markdown' });
 
     const joinNotificationText = `➕ **یک بازمانده جدید به پناهگاه پیوست!**\n\nبازمانده «${initiatorName}» (سازنده) اکنون عضو این پناهگاه است.`;

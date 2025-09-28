@@ -19,6 +19,10 @@ const Shelter = sequelize.define('Shelter', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  preciseLocation: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
 });
