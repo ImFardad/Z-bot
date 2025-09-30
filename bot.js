@@ -10,6 +10,7 @@ const {
 } = require('./handlers/shelterCreationHandler');
 const { handleZombieSolution } = require('./handlers/zombieHandler');
 const { handleManageShelterCommand, handleShelterManagerCallback, handleDonationReply } = require('./handlers/shelterManagerHandler');
+const { handleHelpCommand } = require('./handlers/helpHandler');
 const sequelize = require('./db/database');
 
 async function startBot() {
@@ -119,6 +120,10 @@ async function startBot() {
       command: 'manage_shelter',
       description: 'مدیریت پناهگاه (فقط در گروه پناهگاه)',
     },
+    {
+      command: 'help',
+      description: 'نمایش راهنمای کامل ربات',
+    },
   ]);
   console.log('Bot commands set successfully.');
 
@@ -142,6 +147,7 @@ async function startBot() {
   });
 
   bot.onText(/\/manage_shelter/, (msg) => handleManageShelterCommand(bot, msg));
+  bot.onText(/\/help/, (msg) => handleHelpCommand(bot, msg));
 
   bot.on('message', async (msg) => {
     // Ignore commands, they are handled by onText
