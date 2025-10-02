@@ -21,18 +21,63 @@
 
 ```
 z-bot/
-│
-├── mini-app/         # سورس کد مینی اپ (Vue.js)
+├── .env.example
+├── .gitignore
+├── .prettierrc.json
+├── README.md
+├── bot.js
+├── config.js
+├── eslint.config.js
+├── index.js
+├── package-lock.json
+├── package.json
+├── .git/                     (پوشه گیت)
+├── .husky/                   (پوشه هوک‌های گیت)
+│   ├── _/
+│   └── pre-commit
+├── data/
+│   └── locations.json
+├── db/
+│   ├── DailyPurchase.js
+│   ├── Shelter.js
+│   ├── ShopItem.js
+│   ├── User.js
+│   ├── UserPossibleShelter.js
+│   ├── UserQuestionHistory.js
+│   └── database.js
+├── handlers/
+│   ├── backpackHandler.js
+│   ├── helpHandler.js
+│   ├── menuHandler.js
+│   ├── shelterCreationHandler.js
+│   ├── shelterHandler.js
+│   ├── shelterManagerHandler.js
+│   ├── shopHandler.js
+│   ├── startHandler.js
+│   └── zombieHandler.js
+├── iran/
+│   ├── cities.json
+│   └── provinces.json
+├── keyboards/
+│   └── inlineKeyboards.js
+├── mini-app/                 (پروژه مینی اپ)
+│   ├── .gitignore
+│   ├── README.md
+│   ├── index.html
+│   ├── jsconfig.json
+│   ├── package.json
+│   ├── public/
+│   │   └── favicon.ico
 │   ├── src/
+│   │   ├── App.vue
+│   │   ├── main.js
+│   │   ├── assets/
+│   │   └── components/
 │   └── vite.config.js
-│
-├── db/               # مدل‌های دیتابیس (Sequelize)
-├── handlers/         # منطق مربوط به دستورات ربات
-├── keyboards/        # کیبوردهای داخلی ربات
-│
-├── config.js         # فایل کانفیگ هوشمند (سازگار با Codespaces و لوکال)
-├── bot.js            # منطق اصلی و راه‌اندازی ربات
-└── package.json
+├── services/
+│   └── geminiService.js
+└── utils/
+    └── progressBar.js
 ```
 
 ---
