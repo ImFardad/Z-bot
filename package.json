@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "set DOTENV_CONFIG_SILENT=true&& nodemon --quiet index.js",
+    "dev": "nodemon --quiet index.js",
+    "dev:mini-app": "npm run dev --prefix mini-app",
+    "dev:all": "concurrently \"npm:dev\" \"npm:dev:mini-app\"",
     "lint": "eslint . --fix",
     "format": "prettier --write .",
     "prepare": "husky"
@@ -24,6 +26,7 @@
     "string-similarity": "^4.0.4"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^10.5.0",
