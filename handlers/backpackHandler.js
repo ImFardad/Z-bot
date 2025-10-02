@@ -16,7 +16,9 @@ async function handleBackpackMenu(bot, callbackQuery) {
     }
 
     const capacity = 50 + (user.backpackLevel - 1) * 25; // 50, 75, 100
-    const content = user.backpackContent ? JSON.parse(user.backpackContent) : [];
+    const content = user.backpackContent
+      ? JSON.parse(user.backpackContent)
+      : [];
     const usedSpace = content.reduce((acc, item) => acc + item.quantity, 0);
     const capacityBar = generateProgressBar(usedSpace, capacity);
     const fuelBar = generateProgressBar(user.fuel, 5);

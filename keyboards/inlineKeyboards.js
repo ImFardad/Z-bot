@@ -1,4 +1,4 @@
-const { adminId } = require('../config');
+const { adminId, miniAppUrl } = require('../config');
 
 const menus = {
   main: {
@@ -6,6 +6,12 @@ const menus = {
       `سلام **${name}**، به آخرالزمان خوش آمدی!\n\nاز طریق منوی زیر می‌توانی برای بقا تلاش کنی:`,
     options: (user) => {
       const keyboard = [
+        [
+          {
+            text: '🎮 Mini App',
+            web_app: { url: miniAppUrl },
+          },
+        ],
         [{ text: '🧟 سناریو زامبی', callback_data: 'action:start_zombie' }],
         [{ text: '🏕️ پناهگاه', callback_data: 'action:manage_shelter' }],
         [{ text: '🛒 فروشگاه', callback_data: 'action:open_shop' }],

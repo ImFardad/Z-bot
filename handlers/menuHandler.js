@@ -33,10 +33,10 @@ async function handleMenuCallback(bot, callbackQuery) {
   // Active Menu Check
   if (activeMenuMessages[chatId] && activeMenuMessages[chatId] !== messageId) {
     try {
-            await bot.deleteMessage(chatId, messageId);
-          } catch {
-            /* Ignore */
-          }    // We don't need to answer the query again here as it's likely already answered or invalid.
+      await bot.deleteMessage(chatId, messageId);
+    } catch {
+      /* Ignore */
+    } // We don't need to answer the query again here as it's likely already answered or invalid.
     return;
   }
 

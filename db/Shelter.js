@@ -21,25 +21,26 @@ const Shelter = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-      preciseLocation: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-  treasury: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
+    preciseLocation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    treasury: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    fuelTankerLevel: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+    },
+    fuelTankerContent: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
-  fuelTankerLevel: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
-  },
-  fuelTankerContent: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },  },
   {
     timestamps: true,
   }

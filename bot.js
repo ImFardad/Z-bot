@@ -9,7 +9,11 @@ const {
   handleShelterJoinCallback,
 } = require('./handlers/shelterCreationHandler');
 const { handleZombieSolution } = require('./handlers/zombieHandler');
-const { handleManageShelterCommand, handleShelterManagerCallback, handleDonationReply } = require('./handlers/shelterManagerHandler');
+const {
+  handleManageShelterCommand,
+  handleShelterManagerCallback,
+  handleDonationReply,
+} = require('./handlers/shelterManagerHandler');
 const { handleHelpCommand } = require('./handlers/helpHandler');
 const sequelize = require('./db/database');
 
